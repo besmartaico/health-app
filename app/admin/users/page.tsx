@@ -6,7 +6,7 @@ const th = { textAlign:'left', padding:'10px 18px', fontSize:'11px', fontWeight:
 const inp = { width:'100%', background:'#0f0f0f', border:'1px solid #2a2a2a', borderRadius:'8px', padding:'10px 12px', color:'#fff', fontSize:'14px', outline:'none', boxSizing:'border-box' };
 const lbl = { display:'block', color:'#6b7280', fontSize:'11px', fontWeight:600, marginBottom:'6px', textTransform:'uppercase', letterSpacing:'0.07em' };
 const ROLES = { owner:{label:'Owner',bg:'rgba(139,92,246,0.15)',color:'#a78bfa',border:'rgba(139,92,246,0.3)'}, admin:{label:'Admin',bg:'rgba(16,185,129,0.12)',color:'#34d399',border:'rgba(16,185,129,0.25)'}, viewer:{label:'Viewer',bg:'rgba(59,130,246,0.12)',color:'#60a5fa',border:'rgba(59,130,246,0.25)'} };
-function RoleBadge({ role }) { const r=ROLES[role]||ROLES.viewer; return <span style={{background:r.bg,color:r.color,border:'1px solid '+r.border,borderRadius:'20px',padding:'3px 10px',fontSize:'11px',fontWeight:600}}>{r.label}</span>; }
+const RoleBadge = ({ role }) => { const r=ROLES[role]||ROLES.viewer; return <span style={{background:r.bg,color:r.color,border:'1px solid '+r.border,borderRadius:'20px',padding:'3px 10px',fontSize:'11px',fontWeight:600}}>{r.label}</span>; }
 export default function UsersPage() {
   const [users,setUsers]=useState([]); const [invites,setInvites]=useState([]); const [teams,setTeams]=useState([]);
   const [loading,setLoading]=useState(true); const [showInvite,setShowInvite]=useState(false);
