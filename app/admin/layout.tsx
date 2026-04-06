@@ -143,7 +143,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main */}
-      <main style={{flex:1,overflowAuto:'auto',minHeight:'100vh'}}>
+      <main style={{flex:1,overflow:'auto',minHeight:'100vh'}}>
         {/* Top bar */}
         <div style={{background:'#fff',borderBottom:'1px solid #e5e7eb',padding:'0 32px',height:'64px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:10}}>
           <div style={{color:'#374151',fontSize:'14px'}}>
