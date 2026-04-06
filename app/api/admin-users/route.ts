@@ -2,16 +2,14 @@
 import { NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { Resend } from 'resend';
-
 function getSheets() {
   const auth = new google.auth.GoogleAuth({
-    credentials: { client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL, private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n') },
+    credentials: { client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL, private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g,'\n') },
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
   return google.sheets({ version: 'v4', auth });
 }
 const SID = () => process.env.GOOGLE_SHEETS_CRM_ID;
-
 async function ensureSheets(sheets) {
   try {
     const meta = await sheets.spreadsheets.get({ spreadsheetId: SID() });
@@ -26,7 +24,6 @@ async function ensureSheets(sheets) {
     }
   } catch {}
 }
-
 export async function GET() {
   try {
     const sheets = getSheets();
@@ -42,18 +39,16 @@ export async function GET() {
     return NextResponse.json({ users: [], invites: [], error: String(e) }, { status: 500 });
   }
 }
-
 export async function POST(req) {
   const { action, email, name, role, teamId } = await req.json();
   try {
     const sheets = getSheets();
     await ensureSheets(sheets);
-
     if (action === 'invite') {
       const token = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
       const expiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://health.besmartai.co';
-      const signupUrl = `${appUrl}/admin/signup?token=${token}`;
+      const signupUrl = `${appUrl}/signup?token=${token}`;
       await sheets.spreadsheets.values.append({
         spreadsheetId: SID(), range: 'AdminInvites!A:H', valueInputOption: 'RAW',
         requestBody: { values: [[email, name||'', role||'admin', new Date().toISOString().split('T')[0], 'pending', expiry, token, teamId||'']] },
@@ -64,27 +59,17 @@ export async function POST(req) {
           from: 'BeSmart Health <admin@besmartai.co>',
           to: email,
           subject: 'You have been invited to BeSmart Health Admin',
-          html: `
-            <div style='font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:32px;'>
-              <img src='https://images.squarespace-cdn.com/content/v1/69270d3f55d63e364a913bdd/68b6d2d1-03ce-44bb-88c2-85618d6a7eff/BeSmartAI.png?format=300w' height='36' style='margin-bottom:24px;' />
-              <h2 style='color:#111;margin:0 0 8px;'>You've been invited</h2>
-              <p style='color:#555;margin:0 0 24px;'>You have been invited to join the BeSmart Health admin portal as <strong>${role}</strong>.</p>
-              <a href='${signupUrl}' style='display:inline-block;background:#7b1c2e;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:15px;'>Create your password →</a>
-              <p style='color:#999;font-size:12px;margin-top:24px;'>This link expires in 7 days. If you didn't expect this, ignore this email.</p>
-            </div>
-          `,
+          html: `<div style='font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:32px;'><img src='https://images.squarespace-cdn.com/content/v1/69270d3f55d63e364a913bdd/68b6d2d1-03ce-44bb-88c2-85618d6a7eff/BeSmartAI.png?format=300w' height='36' style='margin-bottom:24px;' /><h2 style='color:#111;margin:0 0 8px;'>You've been invited</h2><p style='color:#555;margin:0 0 24px;'>You have been invited to join the BeSmart Health admin portal as <strong>${role}</strong>.</p><a href='${signupUrl}' style='display:inline-block;background:#7b1c2e;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:15px;'>Create your password →</a><p style='color:#999;font-size:12px;margin-top:24px;'>This link expires in 7 days.</p></div>`,
         });
       }
       return NextResponse.json({ success: true });
     }
-
     if (action === 'assign_team') {
       const res = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: 'AdminUsers!A:A' });
       const rowIdx = (res.data.values || []).findIndex(r => r[0] === email);
       if (rowIdx > 0) await sheets.spreadsheets.values.update({ spreadsheetId: SID(), range: `AdminUsers!F${rowIdx+1}`, valueInputOption: 'RAW', requestBody: { values: [[teamId||'']] } });
       return NextResponse.json({ success: true });
     }
-
     if (action === 'remove') {
       const meta = await sheets.spreadsheets.get({ spreadsheetId: SID() });
       const sheet = meta.data.sheets?.find(s => s.properties?.title === 'AdminUsers');
@@ -94,14 +79,12 @@ export async function POST(req) {
       if (rowIdx > 0) await sheets.spreadsheets.batchUpdate({ spreadsheetId: SID(), requestBody: { requests: [{ deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: rowIdx, endIndex: rowIdx+1 } } }] } });
       return NextResponse.json({ success: true });
     }
-
     if (action === 'revoke') {
       const res = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: 'AdminInvites!A:A' });
       const rowIdx = (res.data.values || []).findIndex(r => r[0] === email);
       if (rowIdx > 0) await sheets.spreadsheets.values.update({ spreadsheetId: SID(), range: `AdminInvites!E${rowIdx+1}`, valueInputOption: 'RAW', requestBody: { values: [['revoked']] } });
       return NextResponse.json({ success: true });
     }
-
     return NextResponse.json({ success: false, error: 'Unknown action' });
   } catch (e) {
     return NextResponse.json({ success: false, error: String(e) }, { status: 500 });

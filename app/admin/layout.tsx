@@ -2,11 +2,31 @@
 import { useState, useEffect } from 'react';
 const LOGO = 'https://images.squarespace-cdn.com/content/v1/69270d3f55d63e364a913bdd/68b6d2d1-03ce-44bb-88c2-85618d6a7eff/BeSmartAI.png?format=300w';
 const NAV=[{label:'Dashboard',href:'/admin',icon:'⬛'},{label:'CRM',href:'/admin/crm',icon:'👥'},{label:'Inventory',href:'/admin/inventory',icon:'📦'},{label:'Purchases',href:'/admin/purchases',icon:'🛒'},{label:'Sales',href:'/admin/sales',icon:'💰'},{label:'Profitability',href:'/admin/profitability',icon:'📊'},{label:'Calculator',href:'/admin/calculator',icon:'🧮'},{label:'Instructions',href:'/admin/instructions',icon:'📋'},{label:'Peptide AI',href:'/admin/peptide-ai',icon:'🤖'},{label:'COAs',href:'/admin/coa',icon:'📄'},{label:'Teams',href:'/admin/teams',icon:'🏢'},{label:'Users',href:'/admin/users',icon:'🔑'}];
-const inpStyle = { width:'100%', background:'rgba(0,0,0,0.4)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'10px', padding:'13px 16px', color:'#fff', fontSize:'15px', outline:'none', boxSizing:'border-box' };
+const EyeIcon = ({ show }) => show ? (
+  <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
+    <path d='M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24'/><line x1='1' y1='1' x2='23' y2='23'/>
+  </svg>
+) : (
+  <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
+    <path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'/><circle cx='12' cy='12' r='3'/>
+  </svg>
+);
+const PwField = ({ value, onChange, placeholder, onEnter }) => {
+  const [show, setShow] = useState(false);
+  return (
+    <div style={{ position: 'relative', marginBottom: '10px' }}>
+      <input type={show ? 'text' : 'password'} placeholder={placeholder} value={value} onChange={onChange}
+        onKeyDown={e => e.key === 'Enter' && onEnter && onEnter()}
+        style={{ width: '100%', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '13px 44px 13px 16px', color: '#fff', fontSize: '15px', outline: 'none', boxSizing: 'border-box' }} />
+      <button type='button' onClick={() => setShow(s => !s)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}><EyeIcon show={show} /></button>
+    </div>
+  );
+};
 export default function AdminLayout({ children }) {
   const [authed,setAuthed]=useState(false);
   const [mode,setMode]=useState('choose');
   const [pin,setPin]=useState('');
+  const [showPin,setShowPin]=useState(false);
   const [email,setEmail]=useState('');
   const [password,setPassword]=useState('');
   const [name,setName]=useState('');
@@ -32,12 +52,7 @@ export default function AdminLayout({ children }) {
     if(password.length<8){setError('Password must be at least 8 characters.');return;}
     if(password!==confirm){setError('Passwords do not match.');return;}
     setLoading(true); setError('');
-    try{
-      const r=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password,name})});
-      const d=await r.json();
-      if(d.success){setSuccess('Account created! You can now sign in.');setMode('email');setPassword('');setConfirm('');}
-      else setError(d.error||'Could not create account.');
-    }catch{setError('Connection error.');}
+    try{ const r=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password,name})}); const d=await r.json(); if(d.success){setSuccess('Account created! You can now sign in.');setMode('email');setPassword('');setConfirm('');}else setError(d.error||'Could not create account.'); }catch{setError('Connection error.');}
     setLoading(false);
   };
   const signOut=()=>{sessionStorage.removeItem('admin_auth');sessionStorage.removeItem('admin_name');setAuthed(false);setPin('');setEmail('');setPassword('');setName('');setConfirm('');setMode('choose');setError('');setSuccess('');};
@@ -60,11 +75,16 @@ export default function AdminLayout({ children }) {
             <h2 style={{color:'#fff',fontSize:'18px',fontWeight:700,margin:'0 0 20px'}}>{mode==='email'?'Sign In':mode==='register'?'Create Account':'Owner Access'}</h2>
             {success && <div style={{background:'rgba(16,185,129,0.1)',border:'1px solid rgba(16,185,129,0.25)',borderRadius:'8px',padding:'11px 14px',color:'#34d399',fontSize:'13px',marginBottom:'14px'}}>✓ {success}</div>}
             {error && <div style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.25)',borderRadius:'8px',padding:'11px 14px',color:'#fca5a5',fontSize:'13px',marginBottom:'14px'}}>⚠️ {error}</div>}
-            {mode==='register' && <input type='text' placeholder='Your full name' value={name} onChange={e=>setName(e.target.value)} style={{...inpStyle,marginBottom:'10px'}} />}
-            {mode!=='pin' && <input type='email' placeholder='Email address' value={email} onChange={e=>setEmail(e.target.value)} style={{...inpStyle,marginBottom:'10px'}} />}
-            {mode==='pin' && <input type='password' placeholder='••••••' value={pin} onChange={e=>setPin(e.target.value)} onKeyDown={e=>e.key==='Enter'&&loginPin()} style={{...inpStyle,letterSpacing:'0.4em',fontFamily:'monospace',textAlign:'center',marginBottom:'10px'}} />}
-            {mode!=='pin' && <input type='password' placeholder='Password' value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==='Enter'&&(mode==='email'?loginEmail():null)} style={{...inpStyle,marginBottom:'10px'}} />}
-            {mode==='register' && <input type='password' placeholder='Confirm password' value={confirm} onChange={e=>setConfirm(e.target.value)} onKeyDown={e=>e.key==='Enter'&&createAccount()} style={{...inpStyle,marginBottom:'10px'}} />}
+            {mode==='register' && <input type='text' placeholder='Your full name' value={name} onChange={e=>setName(e.target.value)} style={{width:'100%',background:'rgba(0,0,0,0.4)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'13px 16px',color:'#fff',fontSize:'15px',outline:'none',boxSizing:'border-box',marginBottom:'10px'}} />}
+            {mode!=='pin' && <input type='email' placeholder='Email address' value={email} onChange={e=>setEmail(e.target.value)} style={{width:'100%',background:'rgba(0,0,0,0.4)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'13px 16px',color:'#fff',fontSize:'15px',outline:'none',boxSizing:'border-box',marginBottom:'10px'}} />}
+            {mode==='pin' && (
+              <div style={{position:'relative',marginBottom:'10px'}}>
+                <input type={showPin?'text':'password'} placeholder='••••••' value={pin} onChange={e=>setPin(e.target.value)} onKeyDown={e=>e.key==='Enter'&&loginPin()} style={{width:'100%',background:'rgba(0,0,0,0.4)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'13px 44px 13px 16px',color:'#fff',fontSize:'18px',outline:'none',boxSizing:'border-box',letterSpacing:showPin?'normal':'0.4em',fontFamily:'monospace',textAlign:'center'}} />
+                <button type='button' onClick={()=>setShowPin(s=>!s)} style={{position:'absolute',right:'12px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:'#6b7280',cursor:'pointer',padding:'2px',display:'flex',alignItems:'center'}}><EyeIcon show={showPin} /></button>
+              </div>
+            )}
+            {mode!=='pin' && <PwField value={password} onChange={e=>setPassword(e.target.value)} placeholder='Password' onEnter={mode==='email'?loginEmail:null} />}
+            {mode==='register' && <PwField value={confirm} onChange={e=>setConfirm(e.target.value)} placeholder='Confirm password' onEnter={createAccount} />}
             <button onClick={mode==='email'?loginEmail:mode==='register'?createAccount:loginPin} disabled={loading} style={{width:'100%',background:loading?'#2d0e18':'#7b1c2e',color:loading?'#6b2d3e':'#fff',border:'none',borderRadius:'10px',padding:'14px',fontSize:'15px',fontWeight:700,cursor:loading?'not-allowed':'pointer',marginBottom:'12px',marginTop:'4px'}}>
               {loading?'Please wait...':(mode==='email'?'Sign In →':mode==='register'?'Create Account →':'Access Dashboard →')}
             </button>
