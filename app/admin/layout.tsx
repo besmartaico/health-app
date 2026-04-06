@@ -1,43 +1,17 @@
 'use client';
 import { useState, useEffect } from 'react';
-const LOGO_URL = 'https://images.squarespace-cdn.com/content/v1/69270d3f55d63e364a913bdd/68b6d2d1-03ce-44bb-88c2-85618d6a7eff/BeSmartAI.png?format=300w';
-const NAV = [
-  { label:'Dashboard', href:'/admin', icon:'⬛' },
-  { label:'CRM', href:'/admin/crm', icon:'👥' },
-  { label:'Inventory', href:'/admin/inventory', icon:'📦' },
-  { label:'Purchases', href:'/admin/purchases', icon:'🛒' },
-  { label:'Sales', href:'/admin/sales', icon:'💰' },
-  { label:'Profitability', href:'/admin/profitability', icon:'📊' },
-  { label:'Calculator', href:'/admin/calculator', icon:'🧮' },
-  { label:'Instructions', href:'/admin/instructions', icon:'📋' },
-  { label:'Peptide AI', href:'/admin/peptide-ai', icon:'🤖' },
-  { label:'COAs', href:'/admin/coa', icon:'📄' },
-  { label:'Teams', href:'/admin/teams', icon:'🏢' },
-  { label:'Users', href:'/admin/users', icon:'🔑' },
-];
+const LOGO='https://images.squarespace-cdn.com/content/v1/69270d3f55d63e364a913bdd/68b6d2d1-03ce-44bb-88c2-85618d6a7eff/BeSmartAI.png?format=300w';
+const NAV=[{label:'Dashboard',href:'/admin',icon:'⬛'},{label:'CRM',href:'/admin/crm',icon:'👥'},{label:'Inventory',href:'/admin/inventory',icon:'📦'},{label:'Purchases',href:'/admin/purchases',icon:'🛒'},{label:'Sales',href:'/admin/sales',icon:'💰'},{label:'Profitability',href:'/admin/profitability',icon:'📊'},{label:'Calculator',href:'/admin/calculator',icon:'🧮'},{label:'Instructions',href:'/admin/instructions',icon:'📋'},{label:'Peptide AI',href:'/admin/peptide-ai',icon:'🤖'},{label:'COAs',href:'/admin/coa',icon:'📄'},{label:'Teams',href:'/admin/teams',icon:'🏢'},{label:'Users',href:'/admin/users',icon:'🔑'}];
 export default function AdminLayout({ children }) {
-  const [authed, setAuthed] = useState(false);
-  const [pin, setPin] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [currentPath, setCurrentPath] = useState('');
-  useEffect(() => { if(sessionStorage.getItem('admin_auth')==='true') setAuthed(true); setCurrentPath(window.location.pathname); }, []);
-  const login = async () => {
-    if(!pin) return; setLoading(true); setError('');
-    try {
-      const r = await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin})});
-      const d = await r.json();
-      if(d.success){sessionStorage.setItem('admin_auth','true');setAuthed(true);}
-      else setError('Invalid PIN. Please try again.');
-    } catch { setError('Connection error.'); }
-    setLoading(false);
-  };
-  if(!authed) return (
+  const [authed,setAuthed]=useState(false); const [pin,setPin]=useState(''); const [error,setError]=useState(''); const [loading,setLoading]=useState(false); const [path,setPath]=useState('');
+  useEffect(()=>{ if(sessionStorage.getItem('admin_auth')==='true')setAuthed(true); setPath(window.location.pathname); },[]);
+  const login=async()=>{ if(!pin)return; setLoading(true); setError(''); try{ const r=await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin})}); const d=await r.json(); if(d.success){sessionStorage.setItem('admin_auth','true');setAuthed(true);}else setError('Invalid PIN. Please try again.'); }catch{setError('Connection error.');} setLoading(false); };
+  if(!authed)return(
     <div style={{minHeight:'100vh',background:'linear-gradient(135deg,#0a0a0a 0%,#1a0a10 50%,#0a0a0a 100%)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Inter,system-ui,sans-serif',padding:'24px'}}>
       <div style={{width:'100%',maxWidth:'400px'}}>
         <div style={{textAlign:'center',marginBottom:'36px'}}>
           <div style={{display:'inline-block',background:'#fff',borderRadius:'14px',padding:'10px 22px',marginBottom:'24px',boxShadow:'0 8px 32px rgba(255,255,255,0.12)'}}>
-            <img src={LOGO_URL} alt="BeSmart Health" style={{height:'38px',display:'block'}} />
+            <img src={LOGO} alt="BeSmart Health" style={{height:'38px',display:'block'}} />
           </div>
           <h1 style={{color:'#fff',fontSize:'24px',fontWeight:'800',margin:'0 0 8px',letterSpacing:'-0.5px'}}>Admin Portal</h1>
           <p style={{color:'#6b7280',fontSize:'14px',margin:0}}>Enter your PIN to continue</p>
@@ -52,19 +26,18 @@ export default function AdminLayout({ children }) {
       </div>
     </div>
   );
-  return (
+  return(
     <div style={{display:'flex',minHeight:'100vh',background:'#131313',fontFamily:'Inter,system-ui,sans-serif'}}>
       <aside style={{width:'220px',background:'#0f0f0f',display:'flex',flexDirection:'column',flexShrink:0,position:'sticky',top:0,height:'100vh',overflowY:'auto',borderRight:'1px solid #1f1f1f'}}>
         <div style={{padding:'20px 16px',borderBottom:'1px solid #1f1f1f'}}>
           <div style={{background:'#fff',borderRadius:'8px',padding:'6px 12px',display:'inline-block',marginBottom:'10px'}}>
-            <img src={LOGO_URL} alt="BeSmart Health" style={{height:'26px',display:'block'}} />
+            <img src={LOGO} alt="BeSmart Health" style={{height:'26px',display:'block'}} />
           </div>
           <div style={{color:'#4b5563',fontSize:'10px',fontWeight:'700',textTransform:'uppercase',letterSpacing:'0.12em'}}>Admin Portal</div>
         </div>
         <nav style={{padding:'10px 8px',flex:1}}>
-          {NAV.map(({label,href,icon})=>{
-            const active=currentPath===href||(href!=='/admin'&&currentPath.startsWith(href));
-            return (<a key={href} href={href} onClick={()=>setCurrentPath(href)} style={{display:'flex',alignItems:'center',gap:'10px',padding:'8px 10px',borderRadius:'8px',textDecoration:'none',marginBottom:'1px',fontSize:'13px',fontWeight:active?'600':'400',background:active?'rgba(123,28,46,0.25)':'transparent',color:active?'#f87171':'#9ca3af',borderLeft:active?'2px solid #7b1c2e':'2px solid transparent',transition:'all 0.15s'}} onMouseOver={e=>{if(!active){e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.color='#e5e7eb';}}} onMouseOut={e=>{if(!active){e.currentTarget.style.background='transparent';e.currentTarget.style.color='#9ca3af';}}}>
+          {NAV.map(({label,href,icon})=>{ const active=path===href||(href!=='/admin'&&path.startsWith(href)); return(
+            <a key={href} href={href} onClick={()=>setPath(href)} style={{display:'flex',alignItems:'center',gap:'10px',padding:'8px 10px',borderRadius:'8px',textDecoration:'none',marginBottom:'1px',fontSize:'13px',fontWeight:active?'600':'400',background:active?'rgba(123,28,46,0.25)':'transparent',color:active?'#f87171':'#9ca3af',borderLeft:active?'2px solid #7b1c2e':'2px solid transparent',transition:'all 0.15s'}} onMouseOver={e=>{if(!active){e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.color='#e5e7eb';}}} onMouseOut={e=>{if(!active){e.currentTarget.style.background='transparent';e.currentTarget.style.color='#9ca3af';}}}>
               <span style={{fontSize:'13px',width:'18px',textAlign:'center'}}>{icon}</span>{label}
             </a>);
           })}
