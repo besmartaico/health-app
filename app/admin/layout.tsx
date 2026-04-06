@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-const NAV = [['Dashboard','/admin'],['CRM','/admin/crm'],['Inventory','/admin/inventory'],['Calculator','/admin/calculator'],['Instructions','/admin/instructions'],['Peptide AI','/admin/peptide-ai'],['COAs','/admin/coa']];
+const NAV = [['Dashboard','/admin'],['CRM','/admin/crm'],['Inventory','/admin/inventory'],['Calculator','/admin/calculator'],['Instructions','/admin/instructions'],['Peptide AI','/admin/peptide-ai'],['COAs','/admin/coa'],['Users','/admin/users']];
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [authed, setAuthed] = useState(false);
   const [pin, setPin] = useState('');
