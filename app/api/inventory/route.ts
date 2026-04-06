@@ -1,27 +1,67 @@
+// @ts-nocheck
 import { NextResponse } from 'next/server';
 import { google } from 'googleapis';
+
 function getSheets() {
-  const auth = new google.auth.GoogleAuth({ credentials: { client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL, private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g,'\n') }, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+  const auth = new google.auth.GoogleAuth({
+    credentials: { client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL, private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n') },
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  });
   return google.sheets({ version: 'v4', auth });
 }
-const SHEET_ID = process.env.GOOGLE_SHEETS_CRM_ID;
+const SID = () => process.env.GOOGLE_SHEETS_CRM_ID;
+
 export async function GET() {
   try {
     const sheets = getSheets();
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID!, range: 'Inventory!A2:I' });
-    const rows = res.data.values || [];
-    const inventory = rows.map((r,i) => ({ id: String(i+2), peptide:r[0]||'', vialSize:r[1]||'', quantity:r[2]||'0', unitCost:r[3]||'0', supplier:r[4]||'', purchaseDate:r[5]||'', isPersonal:r[6]||'no', notes:r[7]||'', createdDate:r[8]||'' }));
-    return NextResponse.json({ inventory });
-  } catch(e) { return NextResponse.json({ inventory:[], error: String(e) }); }
-}
-export async function POST(req: Request) {
-  const { action, item, rowIndex } = await req.json();
-  const sheets = getSheets();
-  const values = [[item.peptide,item.vialSize,item.quantity,item.unitCost,item.supplier,item.purchaseDate,item.isPersonal,item.notes,item.createdDate||new Date().toISOString().split('T')[0]]];
-  if (action === 'update') {
-    await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID!, range: `Inventory!A${rowIndex}:I${rowIndex}`, valueInputOption: 'RAW', requestBody: { values } });
-  } else {
-    await sheets.spreadsheets.values.append({ spreadsheetId: SHEET_ID!, range: 'Inventory!A:I', valueInputOption: 'RAW', requestBody: { values } });
+    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: 'Inventory!A2:F' });
+    const items = (res.data.values || []).map((r, i) => ({
+      id: String(i),
+      itemType: r[0] || '',
+      name: r[1] || '',
+      quantity: r[2] || '0',
+      unit: r[3] || '',
+      reorderLevel: r[4] || '',
+      notes: r[5] || '',
+    }));
+    return NextResponse.json({ items });
+  } catch (e) {
+    return NextResponse.json({ items: [], error: String(e) }, { status: 500 });
   }
-  return NextResponse.json({ success: true });
+}
+
+export async function POST(req) {
+  const { action, item, index } = await req.json();
+  try {
+    const sheets = getSheets();
+    if (action === 'add') {
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SID(), range: 'Inventory!A:F', valueInputOption: 'RAW',
+        requestBody: { values: [[item.itemType||'', item.name||'', item.quantity||'0', item.unit||'', item.reorderLevel||'', item.notes||'']] },
+      });
+      return NextResponse.json({ success: true });
+    }
+    if (action === 'update') {
+      const row = Number(index) + 2;
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SID(), range: `Inventory!A${row}:F${row}`, valueInputOption: 'RAW',
+        requestBody: { values: [[item.itemType||'', item.name||'', item.quantity||'0', item.unit||'', item.reorderLevel||'', item.notes||'']] },
+      });
+      return NextResponse.json({ success: true });
+    }
+    if (action === 'delete') {
+      const meta = await sheets.spreadsheets.get({ spreadsheetId: SID() });
+      const sheet = meta.data.sheets?.find(s => s.properties?.title === 'Inventory');
+      const sheetId = sheet?.properties?.sheetId || 0;
+      const row = Number(index) + 1;
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: SID(),
+        requestBody: { requests: [{ deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: row, endIndex: row + 1 } } }] },
+      });
+      return NextResponse.json({ success: true });
+    }
+    return NextResponse.json({ success: false, error: 'Unknown action' });
+  } catch (e) {
+    return NextResponse.json({ success: false, error: String(e) }, { status: 500 });
+  }
 }
