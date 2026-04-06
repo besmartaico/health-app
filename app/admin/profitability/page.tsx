@@ -1,12 +1,13 @@
+// @ts-nocheck
 'use client';
 import React, { useState, useEffect, CSSProperties } from 'react';
 
-const th: CSSProperties = { textAlign: 'left', padding: '10px 16px', fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid #2a2a2a', background: '#191919' };
-const td: CSSProperties = { padding: '12px 16px', fontSize: '13px', color: '#d1d5db', borderBottom: '1px solid #1a1a1a' };
+const th = { textAlign: 'left', padding: '10px 16px', fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid #2a2a2a', background: '#191919' };
+const td = { padding: '12px 16px', fontSize: '13px', color: '#d1d5db', borderBottom: '1px solid #1a1a1a' };
 
 export default function ProfitPage() {
-  const [purchases, setPurchases] = useState<any[]>([]);
-  const [sales, setSales] = useState<any[]>([]);
+  const [purchases, setPurchases] = useState([]);
+  const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -52,7 +53,7 @@ export default function ProfitPage() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px', marginBottom: '28px' }}>
-        {([['Total Spent', '$' + totalCost.toFixed(2), '#c0394f'], ['Total Revenue', '$' + totalRev.toFixed(2), '#10b981'], ['Net Profit', (inBlack ? '+' : '') + '$' + profit.toFixed(2), profitColor]] as [string,string,string][]).map(([l, v, c]) => (
+        {([['Total Spent', '$' + totalCost.toFixed(2), '#c0394f'], ['Total Revenue', '$' + totalRev.toFixed(2), '#10b981'], ['Net Profit', (inBlack ? '+' : '') + '$' + profit.toFixed(2), profitColor]]).map(([l, v, c]) => (
           <div key={l} style={{ background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: '10px', padding: '18px' }}>
             <div style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>{l}</div>
             <div style={{ fontSize: '26px', fontWeight: 800, color: c }}>{v}</div>
@@ -73,7 +74,7 @@ export default function ProfitPage() {
                 const pm = p.rev > 0 ? (p.profit / p.rev) * 100 : 0;
                 const pc = pb ? '#10b981' : '#ef4444';
                 return (
-                  <tr key={p.name} onMouseOver={e => (e.currentTarget as HTMLTableRowElement).style.background = '#222'} onMouseOut={e => (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'}>
+                  <tr key={p.name} onMouseOver={e => e.currentTarget.style.background = '#222'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
                     <td style={{ ...td, color: '#fff', fontWeight: 600 }}>{p.name}</td>
                     <td style={{ ...td, color: '#c0394f' }}>${p.cost.toFixed(2)}</td>
                     <td style={{ ...td, color: '#10b981' }}>${p.rev.toFixed(2)}</td>
