@@ -12,9 +12,10 @@ const NAV = [
   { label:'Instructions', href:'/admin/instructions', icon:'📋' },
   { label:'Peptide AI', href:'/admin/peptide-ai', icon:'🤖' },
   { label:'COAs', href:'/admin/coa', icon:'📄' },
+  { label:'Teams', href:'/admin/teams', icon:'🏢' },
   { label:'Users', href:'/admin/users', icon:'🔑' },
 ];
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({ children }) {
   const [authed, setAuthed] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
@@ -45,7 +46,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <label style={{display:'block',color:'#9ca3af',fontSize:'12px',fontWeight:'600',marginBottom:'8px',textTransform:'uppercase',letterSpacing:'0.08em'}}>Access PIN</label>
           <input type="password" placeholder="••••••" value={pin} onChange={e=>setPin(e.target.value)} onKeyDown={e=>e.key==='Enter'&&login()} style={{width:'100%',background:'rgba(0,0,0,0.4)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'14px 16px',color:'#fff',fontSize:'18px',outline:'none',boxSizing:'border-box',letterSpacing:'0.4em',fontFamily:'monospace',textAlign:'center'}} />
           {error&&<div style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.25)',borderRadius:'8px',padding:'11px 14px',color:'#fca5a5',fontSize:'13px',marginTop:'12px'}}>⚠️ {error}</div>}
-          <button onClick={login} disabled={loading||!pin} style={{width:'100%',background:pin&&!loading?'#7b1c2e':'#2d0e18',color:pin&&!loading?'#fff':'#6b2d3e',border:'none',borderRadius:'10px',padding:'15px',fontSize:'16px',fontWeight:'700',cursor:pin&&!loading?'pointer':'not-allowed',marginTop:'16px',transition:'all 0.2s'}} onMouseOver={e=>{if(pin&&!loading)(e.currentTarget as HTMLButtonElement).style.background='#9b2438';}} onMouseOut={e=>{if(pin&&!loading)(e.currentTarget as HTMLButtonElement).style.background='#7b1c2e';}}>{loading?'Verifying...':'Access Dashboard →'}</button>
+          <button onClick={login} disabled={loading||!pin} style={{width:'100%',background:pin&&!loading?'#7b1c2e':'#2d0e18',color:pin&&!loading?'#fff':'#6b2d3e',border:'none',borderRadius:'10px',padding:'15px',fontSize:'16px',fontWeight:'700',cursor:pin&&!loading?'pointer':'not-allowed',marginTop:'16px',transition:'all 0.2s'}} onMouseOver={e=>{if(pin&&!loading)e.currentTarget.style.background='#9b2438';}} onMouseOut={e=>{if(pin&&!loading)e.currentTarget.style.background='#7b1c2e';}}>{loading?'Verifying...':'Access Dashboard →'}</button>
           <p style={{color:'#374151',fontSize:'11px',textAlign:'center',marginTop:'20px',marginBottom:0}}>Unauthorized access is logged.</p>
         </div>
       </div>
@@ -63,13 +64,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <nav style={{padding:'10px 8px',flex:1}}>
           {NAV.map(({label,href,icon})=>{
             const active=currentPath===href||(href!=='/admin'&&currentPath.startsWith(href));
-            return (<a key={href} href={href} onClick={()=>setCurrentPath(href)} style={{display:'flex',alignItems:'center',gap:'10px',padding:'8px 10px',borderRadius:'8px',textDecoration:'none',marginBottom:'1px',fontSize:'13px',fontWeight:active?'600':'400',background:active?'rgba(123,28,46,0.25)':'transparent',color:active?'#f87171':'#9ca3af',borderLeft:active?'2px solid #7b1c2e':'2px solid transparent',transition:'all 0.15s'}} onMouseOver={e=>{if(!active){(e.currentTarget as HTMLAnchorElement).style.background='rgba(255,255,255,0.04)';(e.currentTarget as HTMLAnchorElement).style.color='#e5e7eb';}}} onMouseOut={e=>{if(!active){(e.currentTarget as HTMLAnchorElement).style.background='transparent';(e.currentTarget as HTMLAnchorElement).style.color='#9ca3af';}}}>
+            return (<a key={href} href={href} onClick={()=>setCurrentPath(href)} style={{display:'flex',alignItems:'center',gap:'10px',padding:'8px 10px',borderRadius:'8px',textDecoration:'none',marginBottom:'1px',fontSize:'13px',fontWeight:active?'600':'400',background:active?'rgba(123,28,46,0.25)':'transparent',color:active?'#f87171':'#9ca3af',borderLeft:active?'2px solid #7b1c2e':'2px solid transparent',transition:'all 0.15s'}} onMouseOver={e=>{if(!active){e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.color='#e5e7eb';}}} onMouseOut={e=>{if(!active){e.currentTarget.style.background='transparent';e.currentTarget.style.color='#9ca3af';}}}>
               <span style={{fontSize:'13px',width:'18px',textAlign:'center'}}>{icon}</span>{label}
             </a>);
           })}
         </nav>
         <div style={{padding:'14px 12px',borderTop:'1px solid #1a1a1a'}}>
-          <button onClick={()=>{sessionStorage.removeItem('admin_auth');setAuthed(false);setPin('');}} style={{width:'100%',background:'transparent',border:'1px solid #2a2a2a',borderRadius:'8px',color:'#6b7280',fontSize:'12px',padding:'8px',cursor:'pointer',transition:'all 0.2s'}} onMouseOver={e=>{(e.currentTarget as HTMLButtonElement).style.background='rgba(239,68,68,0.08)';(e.currentTarget as HTMLButtonElement).style.color='#fca5a5';(e.currentTarget as HTMLButtonElement).style.borderColor='rgba(239,68,68,0.2)';}} onMouseOut={e=>{(e.currentTarget as HTMLButtonElement).style.background='transparent';(e.currentTarget as HTMLButtonElement).style.color='#6b7280';(e.currentTarget as HTMLButtonElement).style.borderColor='#2a2a2a';}}>← Sign Out</button>
+          <button onClick={()=>{sessionStorage.removeItem('admin_auth');setAuthed(false);setPin('');}} style={{width:'100%',background:'transparent',border:'1px solid #2a2a2a',borderRadius:'8px',color:'#6b7280',fontSize:'12px',padding:'8px',cursor:'pointer',transition:'all 0.2s'}} onMouseOver={e=>{e.currentTarget.style.background='rgba(239,68,68,0.08)';e.currentTarget.style.color='#fca5a5';e.currentTarget.style.borderColor='rgba(239,68,68,0.2)';}} onMouseOut={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='#6b7280';e.currentTarget.style.borderColor='#2a2a2a';}}>← Sign Out</button>
         </div>
       </aside>
       <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'auto'}}>
