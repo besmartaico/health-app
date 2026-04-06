@@ -48,7 +48,7 @@ export default function AdminDashboard() {
 
       {/* Nav Cards */}
       <div style={{ marginBottom: '16px' }}>
-        <h2 style={{ fontSize: '16px', fontWeight: '700', color: '#374151', margin: '0 0 16px', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '12px' }}>Quick Access</h2>
+        <h2 style={{ fontWeight: '700', color: '#374151', margin: '0 0 16px', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '12px' }}>Quick Access</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
           {cards.map(c => (
             <a key={c.href} href={c.href} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '24px 20px', textDecoration: 'none', display: 'block', transition: 'all 0.2s', cursor: 'pointer' }}
