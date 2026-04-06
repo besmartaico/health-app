@@ -3,12 +3,10 @@ import { NextResponse } from 'next/server';
 import { google } from 'googleapis';
 
 function getSheets() {
-  const rawKey = process.env.GOOGLE_PRIVATE_KEY || '';
-  const pk = rawKey.includes('\\n') ? rawKey.replace(/\\n/g, '\n') : rawKey;
   const auth = new google.auth.GoogleAuth({
     credentials: {
       client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      private_key: pk,
+      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
     },
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
@@ -34,7 +32,7 @@ async function ensureTeamsSheet(sheets) {
       });
     }
   } catch (e) {
-    console.error('ensureTeamsSheet error:', e);
+    console.error('ensureTeamsSheet:', String(e));
   }
 }
 
@@ -42,10 +40,7 @@ export async function GET() {
   try {
     const sheets = getSheets();
     await ensureTeamsSheet(sheets);
-    const res = await sheets.spreadsheets.values.get({
-      spreadsheetId: SID,
-      range: 'Teams!A2:D',
-    });
+    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SID, range: 'Teams!A2:D' });
     const teams = (res.data.values || []).map(r => ({
       teamId: r[0] || '',
       name: r[1] || '',
@@ -54,7 +49,6 @@ export async function GET() {
     })).filter(t => t.teamId);
     return NextResponse.json({ teams });
   } catch (e) {
-    console.error('GET /api/teams error:', String(e));
     return NextResponse.json({ teams: [], error: String(e) }, { status: 500 });
   }
 }
@@ -109,7 +103,6 @@ export async function POST(req) {
 
     return NextResponse.json({ success: false, error: 'Unknown action' });
   } catch (e) {
-    console.error('POST /api/teams error:', String(e));
     return NextResponse.json({ success: false, error: String(e) }, { status: 500 });
   }
 }

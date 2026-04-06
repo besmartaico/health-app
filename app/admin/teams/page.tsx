@@ -18,6 +18,7 @@ export default function TeamsPage() {
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
+  const [toastErr, setToastErr] = useState(false);
   const [expanded, setExpanded] = useState(null);
 
   useEffect(() => { load(); }, []);
@@ -31,22 +32,39 @@ export default function TeamsPage() {
       ]);
       setTeams(tr.teams || []);
       setUsers(ur.users || []);
-    } catch {}
+    } catch (e) {
+      showToast('Failed to load: ' + String(e), true);
+    }
     setLoading(false);
+  };
+
+  const showToast = (msg, isErr) => {
+    setToast(msg);
+    setToastErr(!!isErr);
+    setTimeout(() => setToast(''), 4000);
   };
 
   const saveTeam = async () => {
     if (!form.name.trim()) return;
     setSaving(true);
-    await fetch('/api/teams', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: editId ? 'update' : 'create', team: form, teamId: editId }),
-    });
-    setToast(editId ? 'Team updated!' : 'Team created!');
-    setForm({ ...EMPTY }); setEditId(null); setShowForm(false);
-    await load(); setSaving(false);
-    setTimeout(() => setToast(''), 3000);
+    try {
+      const res = await fetch('/api/teams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: editId ? 'update' : 'create', team: form, teamId: editId }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        showToast('Error: ' + data.error, true);
+      } else {
+        showToast(editId ? 'Team updated!' : 'Team "' + form.name + '" created!', false);
+        setForm({ ...EMPTY }); setEditId(null); setShowForm(false);
+        await load();
+      }
+    } catch (e) {
+      showToast('Error: ' + String(e), true);
+    }
+    setSaving(false);
   };
 
   const deleteTeam = async (teamId, name) => {
@@ -68,8 +86,8 @@ export default function TeamsPage() {
     <div style={{ background: '#131313', minHeight: '100vh', padding: '28px', maxWidth: '1000px' }}>
 
       {toast && (
-        <div style={{ position: 'fixed', top: '24px', right: '24px', background: '#1a3a2a', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', padding: '12px 20px', color: '#34d399', fontSize: '13px', fontWeight: 600, zIndex: 100, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
-          ✓ {toast}
+        <div style={{ position: 'fixed', top: '24px', right: '24px', background: toastErr ? '#3a1a1a' : '#1a3a2a', border: '1px solid ' + (toastErr ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'), borderRadius: '10px', padding: '12px 20px', color: toastErr ? '#fca5a5' : '#34d399', fontSize: '13px', fontWeight: 600, zIndex: 100, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', maxWidth: '400px' }}>
+          {toastErr ? '⚠️ ' : '✓ '}{toast}
         </div>
       )}
 
@@ -83,15 +101,6 @@ export default function TeamsPage() {
           style={{ background: '#7b1c2e', color: '#fff', border: 'none', borderRadius: '9px', padding: '10px 20px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
           + New Team
         </button>
-      </div>
-
-      <div style={{ background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.18)', borderRadius: '12px', padding: '14px 18px', marginBottom: '24px', display: 'flex', gap: '12px' }}>
-        <span style={{ fontSize: '18px', flexShrink: 0 }}>ℹ️</span>
-        <div style={{ color: '#4b5563', fontSize: '13px', lineHeight: 1.6 }}>
-          <strong style={{ color: '#93c5fd' }}>How it works:</strong> Admin and Viewer users only see data for their assigned team.
-          The <strong style={{ color: '#9ca3af' }}>Owner</strong> (master PIN) sees all teams.
-          Assign users below or from the <a href="/admin/users" style={{ color: '#c0394f', textDecoration: 'none' }}>Users page</a>.
-        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px', marginBottom: '24px' }}>
