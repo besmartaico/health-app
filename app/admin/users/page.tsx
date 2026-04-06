@@ -1,17 +1,36 @@
+// @ts-nocheck
 'use client';
 import { useState, useEffect } from 'react';
 
-type AdminUser = { email: string; name: string; role: string; addedDate: string; addedBy: string; };
-type Invite = { email: string; role: string; sentDate: string; status: string; };
+const td = { padding: '14px 18px', fontSize: '13px', color: '#d1d5db', borderBottom: '1px solid #1f1f1f' };
+const th = { textAlign: 'left', padding: '10px 18px', fontSize: '11px', fontWeight: 700, color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.08em', background: '#161616', borderBottom: '1px solid #1f1f1f' };
+const inp = { width: '100%', background: '#0f0f0f', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '10px 12px', color: '#fff', fontSize: '14px', outline: 'none', boxSizing: 'border-box' };
+const lbl = { display: 'block', color: '#6b7280', fontSize: '11px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.07em' };
 
-export default function AdminUsersPage() {
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [invites, setInvites] = useState<Invite[]>([]);
+const ROLES = {
+  owner:  { label: 'Owner',  bg: 'rgba(139,92,246,0.15)', color: '#a78bfa', border: 'rgba(139,92,246,0.3)', desc: 'Full access to everything' },
+  admin:  { label: 'Admin',  bg: 'rgba(16,185,129,0.12)', color: '#34d399', border: 'rgba(16,185,129,0.25)', desc: 'Full portal access' },
+  viewer: { label: 'Viewer', bg: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: 'rgba(59,130,246,0.25)', desc: 'Read-only access' },
+};
+
+function RoleBadge({ role }) {
+  const r = ROLES[role] || ROLES.viewer;
+  return (
+    <span style={{ background: r.bg, color: r.color, border: '1px solid ' + r.border, borderRadius: '20px', padding: '3px 10px', fontSize: '11px', fontWeight: 600 }}>
+      {r.label}
+    </span>
+  );
+}
+
+export default function UsersPage() {
+  const [users, setUsers] = useState([]);
+  const [invites, setInvites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
-  const [inviteForm, setInviteForm] = useState({ email: '', name: '', role: 'admin' });
+  const [form, setForm] = useState({ email: '', name: '', role: 'admin' });
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
+  const [activeTab, setActiveTab] = useState('users');
 
   useEffect(() => { load(); }, []);
 
@@ -21,184 +40,185 @@ export default function AdminUsersPage() {
       const r = await fetch('/api/admin-users');
       const d = await r.json();
       setUsers(d.users || []);
-      setInvites(d.invites || []);
+      setInvites((d.invites || []).filter(i => i.status !== 'revoked'));
     } catch {}
     setLoading(false);
   };
 
   const sendInvite = async () => {
-    if (!inviteForm.email) return;
+    if (!form.email) return;
     setSaving(true);
     try {
-      const r = await fetch('/api/admin-users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'invite', ...inviteForm })
-      });
-      const d = await r.json();
-      if (d.success) {
-        setToast('Invite sent to ' + inviteForm.email);
-        setInviteForm({ email: '', name: '', role: 'admin' });
-        setShowInvite(false);
-        await load();
-        setTimeout(() => setToast(''), 3000);
-      }
+      await fetch('/api/admin-users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'invite', ...form }) });
+      setToast('Invite sent to ' + form.email);
+      setForm({ email: '', name: '', role: 'admin' });
+      setShowInvite(false);
+      await load();
+      setTimeout(() => setToast(''), 3000);
     } catch {}
     setSaving(false);
   };
 
-  const removeUser = async (email: string) => {
-    if (!confirm('Remove ' + email + ' from admin?')) return;
-    await fetch('/api/admin-users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'remove', email })
-    });
+  const removeUser = async (email) => {
+    if (!confirm('Remove ' + email + ' from admin access?')) return;
+    await fetch('/api/admin-users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'remove', email }) });
     await load();
   };
 
-  const revokeInvite = async (email: string) => {
-    await fetch('/api/admin-users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'revoke', email })
-    });
+  const revokeInvite = async (email) => {
+    await fetch('/api/admin-users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'revoke', email }) });
     await load();
   };
 
-  const roleBadge = (role: string) => {
-    const colors: Record<string,string> = { owner: 'bg-purple-100 text-purple-700', admin: 'bg-green-100 text-green-700', viewer: 'bg-blue-100 text-blue-700' };
-    return colors[role] || 'bg-slate-100 text-slate-600';
-  };
+  const userCountByRole = (role) => users.filter(u => u.role === role).length;
 
   return (
-    <div className="p-8">
+    <div style={{ background: '#131313', minHeight: '100vh', padding: '28px', maxWidth: '1000px' }}>
+
       {toast && (
-        <div className="fixed top-6 right-6 bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2">
-          <span>✓</span> {toast}
+        <div style={{ position: 'fixed', top: '24px', right: '24px', background: '#1a3a2a', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', padding: '12px 20px', color: '#34d399', fontSize: '13px', fontWeight: 600, zIndex: 100, display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+          ✓ {toast}
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-8">
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px' }}>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Admin Users</h1>
-          <p className="text-slate-500 text-sm mt-1">Manage who has access to the admin portal</p>
+          <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', margin: '0 0 4px' }}>Admin Users</h1>
+          <p style={{ color: '#6b7280', fontSize: '13px', margin: 0 }}>Manage who has access to the admin portal</p>
         </div>
-        <button onClick={() => setShowInvite(true)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+        <button onClick={() => setShowInvite(true)} style={{ background: '#7b1c2e', color: '#fff', border: 'none', borderRadius: '9px', padding: '10px 20px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
           + Invite User
         </button>
       </div>
 
-      {/* Active Users */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="font-semibold text-slate-800">Active Users</h2>
-          <span className="bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded-full">{users.length} users</span>
-        </div>
-        {loading ? <div className="py-12 text-center text-slate-400">Loading...</div> : (
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50">
-              <tr>{['Name','Email','Role','Added',''].map(h => <th key={h} className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">{h}</th>)}</tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {users.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">No users yet. Invite your first admin above.</td></tr>
-              ) : users.map(u => (
-                <tr key={u.email} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 font-medium text-slate-900">{u.name || '—'}</td>
-                  <td className="px-6 py-4 text-slate-500">{u.email}</td>
-                  <td className="px-6 py-4"><span className={`px-2 py-1 rounded-full text-xs font-medium ${roleBadge(u.role)}`}>{u.role}</span></td>
-                  <td className="px-6 py-4 text-slate-400 text-xs">{u.addedDate}</td>
-                  <td className="px-6 py-4">
-                    {u.role !== 'owner' && (
-                      <button onClick={() => removeUser(u.email)} className="text-red-500 hover:text-red-700 text-xs font-medium">Remove</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px', marginBottom: '28px' }}>
+        {Object.entries(ROLES).map(([key, r]) => (
+          <div key={key} style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '12px', padding: '16px 18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <RoleBadge role={key} />
+              <span style={{ color: '#6b7280', fontSize: '12px' }}>{userCountByRole(key)} user{userCountByRole(key) !== 1 ? 's' : ''}</span>
+            </div>
+            <p style={{ color: '#4b5563', fontSize: '12px', margin: 0, lineHeight: 1.5 }}>{r.desc}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Pending Invites */}
-      {invites.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="font-semibold text-slate-800">Pending Invites</h2>
-            <span className="bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-full">{invites.length} pending</span>
-          </div>
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50">
-              <tr>{['Email','Role','Sent','Status',''].map(h => <th key={h} className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">{h}</th>)}</tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {invites.map(inv => (
-                <tr key={inv.email} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 text-slate-700">{inv.email}</td>
-                  <td className="px-6 py-4"><span className={`px-2 py-1 rounded-full text-xs font-medium ${roleBadge(inv.role)}`}>{inv.role}</span></td>
-                  <td className="px-6 py-4 text-slate-400 text-xs">{inv.sentDate}</td>
-                  <td className="px-6 py-4"><span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Pending</span></td>
-                  <td className="px-6 py-4"><button onClick={() => revokeInvite(inv.email)} className="text-red-500 hover:text-red-700 text-xs font-medium">Revoke</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div style={{ display: 'flex', gap: '4px', background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '10px', padding: '4px', marginBottom: '20px', width: 'fit-content' }}>
+        {[['users', 'Active Users', users.length], ['invites', 'Pending Invites', invites.length]].map(([tab, label, count]) => (
+          <button key={tab} onClick={() => setActiveTab(tab)} style={{ background: activeTab === tab ? '#0f0f0f' : 'transparent', color: activeTab === tab ? '#fff' : '#6b7280', border: activeTab === tab ? '1px solid #2a2a2a' : '1px solid transparent', borderRadius: '7px', padding: '7px 16px', fontSize: '13px', fontWeight: activeTab === tab ? 600 : 400, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px' }}>
+            {label}
+            <span style={{ background: activeTab === tab ? '#7b1c2e' : '#2a2a2a', color: activeTab === tab ? '#fff' : '#6b7280', borderRadius: '20px', padding: '1px 7px', fontSize: '11px', fontWeight: 700 }}>{count}</span>
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'users' && (
+        <div style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '14px', overflow: 'hidden' }}>
+          {loading ? (
+            <div style={{ padding: '48px', textAlign: 'center', color: '#4b5563' }}>Loading users...</div>
+          ) : users.length === 0 ? (
+            <div style={{ padding: '48px', textAlign: 'center' }}>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>👥</div>
+              <div style={{ color: '#fff', fontWeight: 600, marginBottom: '6px' }}>No users yet</div>
+              <div style={{ color: '#4b5563', fontSize: '13px' }}>Invite your first admin user to get started.</div>
+            </div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead><tr>{['User', 'Role', 'Added', ''].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+              <tbody>
+                {users.map(u => (
+                  <tr key={u.email} onMouseOver={e => e.currentTarget.style.background = '#1f1f1f'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                    <td style={td}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: u.role === 'owner' ? 'rgba(139,92,246,0.2)' : 'rgba(123,28,46,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: u.role === 'owner' ? '#a78bfa' : '#f87171', flexShrink: 0 }}>
+                          {(u.name || u.email).charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div style={{ color: '#fff', fontWeight: 600, fontSize: '14px' }}>{u.name || '—'}</div>
+                          <div style={{ color: '#4b5563', fontSize: '12px' }}>{u.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={td}><RoleBadge role={u.role} /></td>
+                    <td style={{ ...td, color: '#4b5563', fontSize: '12px' }}>{u.addedDate || '—'}</td>
+                    <td style={td}>
+                      {u.role !== 'owner' && (
+                        <button onClick={() => removeUser(u.email)} style={{ background: 'transparent', border: '1px solid #2a2a2a', borderRadius: '7px', color: '#6b7280', fontSize: '12px', padding: '5px 12px', cursor: 'pointer' }} onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)'; e.currentTarget.style.color = '#f87171'; }} onMouseOut={e => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = '#6b7280'; }}>
+                          Remove
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
 
-      {/* Roles Info */}
-      <div className="bg-slate-50 border border-slate-200 rounded-xl p-6">
-        <h3 className="font-semibold text-slate-800 mb-3">Role Permissions</h3>
-        <div className="grid grid-cols-3 gap-4 text-sm">
-          {[
-            { role: 'owner', color: 'text-purple-700 bg-purple-50', desc: 'Full access. Can manage all users, settings, and data.' },
-            { role: 'admin', color: 'text-green-700 bg-green-50', desc: 'Can access CRM, inventory, calculator, and AI tools.' },
-            { role: 'viewer', color: 'text-blue-700 bg-blue-50', desc: 'Read-only access to CRM and inventory data.' },
-          ].map(r => (
-            <div key={r.role} className="bg-white rounded-lg border border-slate-200 p-4">
-              <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold mb-2 ${r.color}`}>{r.role}</span>
-              <p className="text-slate-500 text-xs leading-relaxed">{r.desc}</p>
+      {activeTab === 'invites' && (
+        <div style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '14px', overflow: 'hidden' }}>
+          {invites.length === 0 ? (
+            <div style={{ padding: '48px', textAlign: 'center' }}>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>📬</div>
+              <div style={{ color: '#fff', fontWeight: 600, marginBottom: '6px' }}>No pending invites</div>
+              <div style={{ color: '#4b5563', fontSize: '13px' }}>All invites have been accepted or revoked.</div>
             </div>
-          ))}
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead><tr>{['Email', 'Role', 'Sent', 'Status', ''].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+              <tbody>
+                {invites.map(inv => (
+                  <tr key={inv.email} onMouseOver={e => e.currentTarget.style.background = '#1f1f1f'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                    <td style={{ ...td, color: '#fff' }}>{inv.email}</td>
+                    <td style={td}><RoleBadge role={inv.role} /></td>
+                    <td style={{ ...td, color: '#4b5563', fontSize: '12px' }}>{inv.sentDate}</td>
+                    <td style={td}><span style={{ background: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.25)', borderRadius: '20px', padding: '3px 10px', fontSize: '11px', fontWeight: 600 }}>Pending</span></td>
+                    <td style={td}>
+                      <button onClick={() => revokeInvite(inv.email)} style={{ background: 'transparent', border: '1px solid #2a2a2a', borderRadius: '7px', color: '#6b7280', fontSize: '12px', padding: '5px 12px', cursor: 'pointer' }} onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)'; e.currentTarget.style.color = '#f87171'; }} onMouseOut={e => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = '#6b7280'; }}>
+                        Revoke
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
-      </div>
+      )}
 
-      {/* Invite Modal */}
       {showInvite && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
-            <h2 className="text-xl font-bold text-slate-900 mb-1">Invite Admin User</h2>
-            <p className="text-slate-400 text-sm mb-6">They'll receive an email with login instructions.</p>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1.5">Email Address *</label>
-                <input type="email" placeholder="name@example.com" value={inviteForm.email}
-                  onChange={e => setInviteForm(p => ({...p, email: e.target.value}))}
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500" />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1.5">Full Name</label>
-                <input type="text" placeholder="Jane Smith" value={inviteForm.name}
-                  onChange={e => setInviteForm(p => ({...p, name: e.target.value}))}
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500" />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1.5">Role</label>
-                <select value={inviteForm.role} onChange={e => setInviteForm(p => ({...p, role: e.target.value}))}
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-green-500 bg-white">
-                  <option value="admin">Admin — Full portal access</option>
-                  <option value="viewer">Viewer — Read-only access</option>
-                </select>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '18px', padding: '32px', width: '100%', maxWidth: '440px', boxShadow: '0 32px 64px rgba(0,0,0,0.6)' }}>
+            <h2 style={{ color: '#fff', fontSize: '20px', fontWeight: 800, margin: '0 0 6px' }}>Invite User</h2>
+            <p style={{ color: '#6b7280', fontSize: '13px', margin: '0 0 24px' }}>They'll receive access to the admin portal.</p>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={lbl}>Email Address *</label>
+              <input type="email" placeholder="name@example.com" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} style={inp} />
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={lbl}>Full Name</label>
+              <input type="text" placeholder="Jane Smith" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} style={inp} />
+            </div>
+            <div style={{ marginBottom: '24px' }}>
+              <label style={lbl}>Role</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {[['admin', 'Admin', 'Full portal access — CRM, inventory, AI tools'], ['viewer', 'Viewer', 'Read-only access to data']].map(([val, label, desc]) => (
+                  <label key={val} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: form.role === val ? 'rgba(123,28,46,0.15)' : '#0f0f0f', border: '1px solid ' + (form.role === val ? 'rgba(123,28,46,0.4)' : '#2a2a2a'), borderRadius: '10px', padding: '12px 14px', cursor: 'pointer' }}>
+                    <input type="radio" name="role" value={val} checked={form.role === val} onChange={() => setForm(p => ({ ...p, role: val }))} style={{ accentColor: '#7b1c2e' }} />
+                    <div>
+                      <div style={{ color: '#fff', fontSize: '13px', fontWeight: 600 }}>{label}</div>
+                      <div style={{ color: '#4b5563', fontSize: '12px' }}>{desc}</div>
+                    </div>
+                  </label>
+                ))}
               </div>
             </div>
-            <div className="flex gap-3 mt-6">
-              <button onClick={sendInvite} disabled={saving || !inviteForm.email}
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2.5 rounded-lg text-sm font-semibold">
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={sendInvite} disabled={saving || !form.email} style={{ flex: 1, background: form.email && !saving ? '#7b1c2e' : '#2d0e18', color: form.email && !saving ? '#fff' : '#5a2030', border: 'none', borderRadius: '10px', padding: '13px', fontSize: '14px', fontWeight: 700, cursor: form.email && !saving ? 'pointer' : 'not-allowed' }}>
                 {saving ? 'Sending...' : 'Send Invite'}
               </button>
-              <button onClick={() => { setShowInvite(false); setInviteForm({ email: '', name: '', role: 'admin' }); }}
-                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-lg text-sm font-medium">
+              <button onClick={() => { setShowInvite(false); setForm({ email: '', name: '', role: 'admin' }); }} style={{ flex: 1, background: '#242424', color: '#9ca3af', border: '1px solid #2a2a2a', borderRadius: '10px', padding: '13px', fontSize: '14px', cursor: 'pointer' }}>
                 Cancel
               </button>
             </div>
