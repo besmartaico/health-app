@@ -19,6 +19,7 @@ export default function SalesPage() {
   const [form, setForm] = useState({...EMPTY, lines:[newLine()]});
   const [editIdx, setEditIdx] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [showReferral, setShowReferral] = useState(false);
   const [toast, setToast] = useState('');
   const [toastErr, setToastErr] = useState(false);
   const [search, setSearch] = useState('');
@@ -44,7 +45,7 @@ export default function SalesPage() {
   const lineTotal = (l) => (parseFloat(l.qty)||0)*(parseFloat(l.price)||0);
   const formTotal = form.lines.reduce((s,l)=>s+lineTotal(l),0);
 
-  const openAdd = () => { setForm({...EMPTY,date:new Date().toISOString().split('T')[0],lines:[newLine()]}); setEditIdx(null); setShowForm(true); };
+  const openAdd = () => { setForm({...EMPTY,date:new Date().toISOString().split('T')[0],lines:[newLine()]}); setEditIdx(null); setShowReferral(false); setShowForm(true); };
   const openEdit = (sale) => {
     let lines; try { lines=JSON.parse(sale.lines||'[]'); } catch { lines=[]; }
     if(!lines.length) lines=[newLine()];
@@ -173,29 +174,37 @@ export default function SalesPage() {
               </div>}
             </div>
 
-            {/* Referral section */}
-            <div style={{background:'rgba(167,139,250,0.06)',border:'1px solid rgba(167,139,250,0.15)',borderRadius:'10px',padding:'14px',marginBottom:'16px'}}>
-              <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'8px'}}>
-                <span style={{fontSize:'16px'}}>👤</span>
-                <label style={{...lbl,margin:0,color:'#a78bfa'}}>Referred By (optional)</label>
-              </div>
-              <select value={form.referredBy} onChange={e=>setForm(f=>({...f,referredBy:e.target.value}))} style={{...inp,color:form.referredBy?'#fff':'#4b5563'}}>
-                <option value=''>No referral</option>
-                {custOptions.filter(n=>n!==form.customer).map(n=><option key={n} value={n}>{n}</option>)}
-              </select>
-              {form.referredBy&&(
-                <div style={{marginTop:'8px',fontSize:'12px',color:'#a78bfa',display:'flex',alignItems:'center',gap:'6px'}}>
-                  <span>✓</span>
-                  <span><strong>{form.referredBy}</strong> will receive <strong>$20 credit</strong> toward their next purchase</span>
+            {/* Referral section - hidden by default, toggled by button */}
+            {showReferral && (
+              <div style={{background:'rgba(167,139,250,0.06)',border:'1px solid rgba(167,139,250,0.2)',borderRadius:'10px',padding:'14px',marginBottom:'16px',position:'relative'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+                    <span style={{fontSize:'15px'}}>👤</span>
+                    <label style={{...lbl,margin:0,color:'#a78bfa'}}>Referred By</label>
+                  </div>
+                  <button onClick={()=>{setShowReferral(false);setForm(f=>({...f,referredBy:''}));}} style={{background:'transparent',border:'none',color:'#4b5563',fontSize:'18px',cursor:'pointer',lineHeight:1,padding:'0 2px'}} onMouseOver={e=>e.currentTarget.style.color='#f87171'} onMouseOut={e=>e.currentTarget.style.color='#4b5563'}>×</button>
                 </div>
-              )}
-            </div>
+                <select value={form.referredBy} onChange={e=>setForm(f=>({...f,referredBy:e.target.value}))} style={{...inp,color:form.referredBy?'#fff':'#4b5563'}}>
+                  <option value=''>Select referring customer...</option>
+                  {custOptions.filter(n=>n!==form.customer).map(n=><option key={n} value={n}>{n}</option>)}
+                </select>
+                {form.referredBy&&(
+                  <div style={{marginTop:'8px',fontSize:'12px',color:'#a78bfa',display:'flex',alignItems:'center',gap:'6px'}}>
+                    <span>✓</span>
+                    <span><strong>{form.referredBy}</strong> will receive <strong>$20 credit</strong></span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Line items */}
             <div style={{marginBottom:'16px'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
                 <label style={{...lbl,margin:0}}>Line Items</label>
-                <button onClick={addLine} style={{background:'rgba(123,28,46,0.2)',border:'1px solid rgba(123,28,46,0.4)',borderRadius:'6px',color:'#f87171',fontSize:'12px',padding:'4px 12px',cursor:'pointer',fontWeight:600}}>+ Add Item</button>
+                <div style={{display:'flex',gap:'6px'}}>
+                  <button onClick={addLine} style={{background:'rgba(123,28,46,0.2)',border:'1px solid rgba(123,28,46,0.4)',borderRadius:'6px',color:'#f87171',fontSize:'12px',padding:'4px 12px',cursor:'pointer',fontWeight:600}}>+ Add Item</button>
+                  {!showReferral&&<button onClick={()=>setShowReferral(true)} style={{background:'rgba(167,139,250,0.1)',border:'1px solid rgba(167,139,250,0.3)',borderRadius:'6px',color:'#a78bfa',fontSize:'12px',padding:'4px 12px',cursor:'pointer',fontWeight:600}}>+ Add Referral</button>}
+                </div>
               </div>
               <div style={{background:'#0f0f0f',border:'1px solid #2a2a2a',borderRadius:'10px',overflow:'hidden'}}>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 72px 100px 30px',padding:'7px 12px',borderBottom:'1px solid #2a2a2a'}}>
