@@ -18,48 +18,56 @@ export async function POST() {
   try {
     const sheets = getSheets();
 
-    // 1. Read all sheet tab names to verify they exist
+    // Get all tab names
     const meta = await sheets.spreadsheets.get({ spreadsheetId: SID() });
     const tabNames = meta.data.sheets?.map(s => s.properties?.title) || [];
+    const purchTab = tabNames.find(t => /purchase/i.test(t)) || 'Purchases';
+    const salesTab = tabNames.find(t => /sale/i.test(t)) || 'Sales';
+    const invTab   = tabNames.find(t => /inventor/i.test(t)) || 'Inventory';
 
-    // 2. Read all purchases - try both possible column layouts
-    // Old layout: date,vendor,item,quantity,unit,unitCost,discount,totalCost,notes (A-I, item=C, qty=D)
-    // New layout: date,vendor,item,quantity,unitCost,discount,totalCost,notes (A-H, item=C, qty=D)
-    const purchTab = tabNames.find(t => t.toLowerCase().includes('purchase')) || 'Purchases';
-    const invTab = tabNames.find(t => t.toLowerCase().includes('inventor')) || 'Inventory';
-
-    const purchRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: SID(),
-      range: `${purchTab}!A1:I`,
-    });
-    const allRows = purchRes.data.values || [];
-
-    // Skip header row, aggregate quantities by item name
-    const totals = {};
-    for (const row of allRows.slice(1)) {
-      const item = row[2]?.trim(); // column C = item
-      const qty = parseFloat(row[3]) || 0; // column D = quantity
-      if (item && qty > 0) {
-        totals[item] = (totals[item] || 0) + qty;
-      }
+    // 1. Aggregate purchases: item -> total qty bought
+    const purchRes = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: `${purchTab}!A1:I` });
+    const purchRows = purchRes.data.values || [];
+    const bought: Record<string, number> = {};
+    for (const row of purchRows.slice(1)) {
+      const item = row[2]?.trim();
+      const qty  = parseFloat(row[3]) || 0;
+      if (item && qty > 0) bought[item] = (bought[item] || 0) + qty;
     }
 
-    if (Object.keys(totals).length === 0) {
-      return NextResponse.json({ success: false, message: 'No purchases found to backfill', tabNames, rowCount: allRows.length });
+    // 2. Aggregate sales: item -> total qty sold
+    const salesRes = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: `${salesTab}!A1:E` });
+    const salesRows = salesRes.data.values || [];
+    const sold: Record<string, number> = {};
+    for (const row of salesRows.slice(1)) {
+      const linesJson = row[2] || '[]';
+      try {
+        const lines = JSON.parse(linesJson);
+        for (const line of lines) {
+          const item = line.product?.trim();
+          const qty  = parseFloat(line.qty) || 0;
+          if (item && qty > 0) sold[item] = (sold[item] || 0) + qty;
+        }
+      } catch {}
     }
 
-    // 3. Clear existing inventory data (keep header)
-    await sheets.spreadsheets.values.clear({
-      spreadsheetId: SID(),
-      range: `${invTab}!A2:Z`,
-    });
+    // 3. Compute net = bought - sold (floor at 0)
+    const allItems = new Set([...Object.keys(bought), ...Object.keys(sold)]);
+    const netInventory = Array.from(allItems).map(name => ({
+      name,
+      bought: bought[name] || 0,
+      sold:   sold[name] || 0,
+      net:    Math.max(0, (bought[name] || 0) - (sold[name] || 0)),
+    })).filter(i => i.bought > 0); // only items we've purchased
 
-    // 4. Write aggregated inventory rows
-    // Inventory columns: itemType(A), name(B), quantity(C), unit(D), reorderLevel(E), notes(F)
-    const invRows = Object.entries(totals).map(([name, qty]) => [
-      'Peptide', name, String(qty), 'vials', '', '',
-    ]);
+    if (netInventory.length === 0) {
+      return NextResponse.json({ success: false, message: 'No purchases found', tabNames, purchRowCount: purchRows.length, salesRowCount: salesRows.length });
+    }
 
+    // 4. Clear and rewrite Inventory sheet
+    await sheets.spreadsheets.values.clear({ spreadsheetId: SID(), range: `${invTab}!A2:Z` });
+
+    const invRows = netInventory.map(i => ['Peptide', i.name, String(i.net), 'vials', '', '']);
     await sheets.spreadsheets.values.update({
       spreadsheetId: SID(),
       range: `${invTab}!A2`,
@@ -69,8 +77,8 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      message: `Backfilled ${invRows.length} inventory items from ${allRows.length - 1} purchases`,
-      items: Object.entries(totals).map(([name, qty]) => ({ name, qty })),
+      message: `Synced ${netInventory.length} items: ${purchRows.length - 1} purchases, ${salesRows.length - 1} sales`,
+      items: netInventory,
     });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e?.message || String(e) }, { status: 500 });
