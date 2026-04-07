@@ -33,12 +33,10 @@ export default function HomePage() {
     }).catch(() => setLoading(false));
   }, []);
 
-  const count = posters.length || 9;
-
   return (
     <div style={{ fontFamily: 'Inter,system-ui,sans-serif', background: '#0a0a0a', minHeight: '100vh', color: '#fff' }}>
 
-      {/* Poster Modal - shows image directly, no Drive URLs */}
+      {/* Poster Modal */}
       {selected && (
         <div onClick={() => setSelected(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.93)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div onClick={e => e.stopPropagation()} style={{ position: 'relative', maxWidth: '800px', width: '100%', maxHeight: '92vh', background: '#111', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.8)', display: 'flex', flexDirection: 'column' }}>
@@ -53,12 +51,12 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Nav */}
+      {/* Nav - Login button (not Admin Portal) */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(10,10,10,0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 24px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ background: '#fff', borderRadius: '8px', padding: '5px 14px' }}>
           <img src={LOGO} alt='BeSmart Health' style={{ height: '28px', display: 'block' }} />
         </div>
-        <a href='/admin' style={{ background: '#7b1c2e', color: '#fff', textDecoration: 'none', fontSize: '14px', padding: '9px 20px', borderRadius: '8px', fontWeight: 600 }}>Admin Portal</a>
+        <a href='/admin' style={{ background: '#7b1c2e', color: '#fff', textDecoration: 'none', fontSize: '14px', padding: '9px 20px', borderRadius: '8px', fontWeight: 600 }}>Login</a>
       </nav>
 
       {/* Hero */}
@@ -73,16 +71,7 @@ export default function HomePage() {
         <a href='#peptides' style={{ display: 'inline-block', background: '#7b1c2e', color: '#fff', textDecoration: 'none', padding: '14px 32px', borderRadius: '10px', fontWeight: 700, fontSize: '15px' }}>View Our Peptides</a>
       </section>
 
-      {/* Stats bar */}
-      <section style={{ borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-        <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: '32px', textAlign: 'center' }}>
-          {[[''+count+'+','Compounded Peptides'],['98%+','3rd Party Tested'],['✓','Lab Verified Quality'],['100%','Batch Documented']].map(([num,label])=>(
-            <div key={label}><div style={{ fontSize:'32px',fontWeight:900,color:'#c0394f',marginBottom:'4px' }}>{num}</div><div style={{ color:'#6b7280',fontSize:'13px',fontWeight:500 }}>{label}</div></div>
-          ))}
-        </div>
-      </section>
-
-      {/* Trust badges */}
+      {/* Trust badges - replaces stats bar */}
       <section style={{ padding: '48px 24px', maxWidth: '900px', margin: '0 auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '16px' }}>
           {[['🔬','3rd Party Tested','Every batch independently tested at 98%+ purity'],['✅','Lab Verified Quality','Rigorous quality control on every formulation'],['⚗️','Compounded Peptides','Custom-formulated to your specific protocol'],['🩺','Expert Guidance','Personalized dosing protocols & ongoing support']].map(([icon,title,desc])=>(
