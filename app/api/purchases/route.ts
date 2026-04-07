@@ -11,15 +11,15 @@ function getSheets() {
 }
 const SID = () => process.env.GOOGLE_SHEETS_CRM_ID;
 
-// Columns: date, vendor, item, quantity, unit, unitCost, discount, totalCost, notes
+// Columns: date, vendor, item, quantity, unitCost, discount, totalCost, notes (A-H)
 export async function GET() {
   try {
     const sheets = getSheets();
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: 'Purchases!A2:I' });
+    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: 'Purchases!A2:H' });
     const purchases = (res.data.values || []).map((r, i) => ({
       id: String(i),
-      date: r[0]||'', vendor: r[1]||'', item: r[2]||'', quantity: r[3]||'', unit: r[4]||'',
-      unitCost: r[5]||'', discount: r[6]||'', totalCost: r[7]||'', notes: r[8]||'',
+      date: r[0]||'', vendor: r[1]||'', item: r[2]||'', quantity: r[3]||'',
+      unitCost: r[4]||'', discount: r[5]||'', totalCost: r[6]||'', notes: r[7]||'',
     }));
     return NextResponse.json({ purchases });
   } catch (e) {
@@ -28,17 +28,17 @@ export async function GET() {
 }
 
 export async function POST(req) {
-  const { action, purchase, index } = await req.json();
+  const { action, purchase: p, index } = await req.json();
   try {
     const sheets = getSheets();
-    const row = (p) => [p.date||'', p.vendor||'', p.item||'', p.quantity||'', p.unit||'', p.unitCost||'', p.discount||'', p.totalCost||'', p.notes||''];
+    const row = (p) => [p.date||'', p.vendor||'', p.item||'', p.quantity||'', p.unitCost||'', p.discount||'', p.totalCost||'', p.notes||''];
     if (action === 'add') {
-      await sheets.spreadsheets.values.append({ spreadsheetId: SID(), range: 'Purchases!A:I', valueInputOption: 'RAW', requestBody: { values: [row(purchase)] } });
+      await sheets.spreadsheets.values.append({ spreadsheetId: SID(), range: 'Purchases!A:H', valueInputOption: 'RAW', requestBody: { values: [row(p)] } });
       return NextResponse.json({ success: true });
     }
     if (action === 'update') {
       const r = Number(index) + 2;
-      await sheets.spreadsheets.values.update({ spreadsheetId: SID(), range: `Purchases!A${r}:I${r}`, valueInputOption: 'RAW', requestBody: { values: [row(purchase)] } });
+      await sheets.spreadsheets.values.update({ spreadsheetId: SID(), range: `Purchases!A${r}:H${r}`, valueInputOption: 'RAW', requestBody: { values: [row(p)] } });
       return NextResponse.json({ success: true });
     }
     if (action === 'delete') {
