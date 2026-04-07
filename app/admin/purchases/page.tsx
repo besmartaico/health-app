@@ -1,82 +1,121 @@
 // @ts-nocheck
 'use client';
-import React, { useState, useEffect, CSSProperties } from 'react';
+import { useState, useEffect } from 'react';
 
-const dark = { background: '#131313', color: '#fff', minHeight: '100vh', padding: '28px', maxWidth: '1100px' };
-const card = { background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: '12px', overflow: 'hidden' };
-const th = { textAlign: 'left', padding: '10px 16px', fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid #2a2a2a', background: '#191919' };
-const td = { padding: '12px 16px', fontSize: '13px', color: '#d1d5db', borderBottom: '1px solid #1a1a1a' };
-const inp = { width: '100%', background: '#111', border: '1px solid #333', borderRadius: '8px', padding: '9px 12px', color: '#fff', fontSize: '13px', outline: 'none', boxSizing: 'border-box' };
-const label = { display: 'block', color: '#9ca3af', fontSize: '11px', fontWeight: 700, marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.06em' };
+const th = { textAlign:'left', padding:'11px 16px', fontSize:'11px', fontWeight:700, color:'#4b5563', textTransform:'uppercase', letterSpacing:'0.08em', background:'#161616', borderBottom:'1px solid #1f1f1f' };
+const td = { padding:'12px 16px', fontSize:'13px', color:'#d1d5db', borderBottom:'1px solid #1f1f1f', verticalAlign:'middle' };
+const inp = { width:'100%', background:'#0f0f0f', border:'1px solid #2a2a2a', borderRadius:'8px', padding:'10px 13px', color:'#fff', fontSize:'14px', outline:'none', boxSizing:'border-box' };
+const lbl = { display:'block', color:'#6b7280', fontSize:'11px', fontWeight:600, marginBottom:'5px', textTransform:'uppercase', letterSpacing:'0.07em' };
 
-type Purchase = { id: string; date: string; supplier: string; peptide: string; quantity: string; unitCost: string; totalCost: string; batchNo: string; notes: string; };
-const EMPTY = { date: new Date().toISOString().split('T')[0], supplier: '', peptide: '', quantity: '', unitCost: '', totalCost: '', batchNo: '', notes: '' };
+const EMPTY = { date:'', vendor:'', item:'', quantity:'', unit:'', unitCost:'', discount:'', notes:'' };
 
 export default function PurchasesPage() {
-  const [items, setItems] = useState([]);
+  const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ ...EMPTY });
-  const [editId, setEditId] = useState(null);
+  const [form, setForm] = useState({...EMPTY});
+  const [editIdx, setEditIdx] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState('');
+  const [toastErr, setToastErr] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => { load(); }, []);
+
   const load = async () => {
     setLoading(true);
-    const r = await fetch('/api/purchases');
-    const d = await r.json();
-    setItems(d.purchases || []);
+    try { const r = await fetch('/api/purchases').then(x => x.json()); setPurchases(r.purchases || []); } catch {}
     setLoading(false);
   };
-  const calc = (qty: string, cost: string) => {
-    const t = parseFloat(qty || '0') * parseFloat(cost || '0');
-    return isNaN(t) ? '0.00' : t.toFixed(2);
+
+  const showT = (msg, err) => { setToast(msg); setToastErr(!!err); setTimeout(() => setToast(''), 3500); };
+
+  // Calculated fields
+  const calcTotals = (f) => {
+    const qty = parseFloat(f.quantity) || 0;
+    const unit = parseFloat(f.unitCost) || 0;
+    const disc = parseFloat(f.discount) || 0;
+    const subtotal = qty * unit;
+    const discAmt = subtotal * (disc / 100);
+    const total = subtotal - discAmt;
+    return { subtotal, discAmt, total };
   };
+
   const save = async () => {
+    if (!form.item.trim()) return;
     setSaving(true);
-    const item = { ...form, totalCost: calc(form.quantity, form.unitCost) };
-    await fetch('/api/purchases', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: editId ? 'update' : 'add', item, rowIndex: editId }) });
-    await load(); setShowForm(false); setForm({ ...EMPTY }); setEditId(null); setSaving(false);
+    const { total } = calcTotals(form);
+    try {
+      const payload = { ...form, totalCost: total.toFixed(2) };
+      const res = await fetch('/api/purchases', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action: editIdx!==null?'update':'add', purchase: payload, index: editIdx }) });
+      const d = await res.json();
+      if (d.error) showT('Error: '+d.error, true);
+      else { showT(editIdx!==null?'Purchase updated!':'Purchase added!', false); setShowForm(false); setForm({...EMPTY}); setEditIdx(null); await load(); }
+    } catch(e) { showT('Error: '+String(e), true); }
+    setSaving(false);
   };
-  const totalSpent = items.reduce((s, i) => s + parseFloat(i.totalCost || '0'), 0);
+
+  const del = async (idx, item) => {
+    if (!confirm('Delete purchase for "'+item+'"?')) return;
+    await fetch('/api/purchases', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'delete', index:idx }) });
+    await load();
+  };
+
+  const filtered = purchases.filter(p => !search || p.item?.toLowerCase().includes(search.toLowerCase()) || p.vendor?.toLowerCase().includes(search.toLowerCase()));
+
+  const totalSpend = filtered.reduce((s, p) => s + (parseFloat(p.totalCost)||0), 0);
+  const totalSaved = filtered.reduce((s, p) => s + (parseFloat(p.discountAmt)||0), 0);
+
+  const { subtotal: fSub, discAmt: fDisc, total: fTotal } = calcTotals(form);
 
   return (
-    <div style={dark}>
-      <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', margin: '0 0 4px' }}>Lab Purchases</h1>
-      <p style={{ color: '#6b7280', fontSize: '13px', margin: '0 0 24px' }}>Track all peptide purchases from suppliers</p>
+    <div style={{background:'#131313',minHeight:'100vh',padding:'28px',maxWidth:'1100px'}}>
+      {toast&&<div style={{position:'fixed',top:'24px',right:'24px',background:toastErr?'#3a1a1a':'#1a3a2a',border:'1px solid '+(toastErr?'rgba(239,68,68,0.3)':'rgba(16,185,129,0.3)'),borderRadius:'10px',padding:'12px 20px',color:toastErr?'#fca5a5':'#34d399',fontSize:'13px',fontWeight:600,zIndex:100}}>{toastErr?'⚠️ ':'✓ '}{toast}</div>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px', marginBottom: '24px' }}>
-        {([['Total Spent', '$' + totalSpent.toFixed(2), '#c0394f'], ['Total Orders', String(items.length), '#3b82f6'], ['Unique Peptides', String([...new Set(items.map(i => i.peptide).filter(Boolean))].length), '#10b981']]).map(([l, v, c]) => (
-          <div key={l} style={{ background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: '10px', padding: '16px 20px' }}>
-            <div style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>{l}</div>
-            <div style={{ fontSize: '24px', fontWeight: 800, color: c }}>{v}</div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'24px'}}>
+        <div>
+          <h1 style={{fontSize:'22px',fontWeight:800,color:'#fff',margin:'0 0 4px'}}>Purchases</h1>
+          <p style={{color:'#6b7280',fontSize:'13px',margin:0}}>{purchases.length} records · ${totalSpend.toLocaleString('en-US',{minimumFractionDigits:2})} total spend{totalSaved>0?` · $${totalSaved.toLocaleString('en-US',{minimumFractionDigits:2})} saved via discounts`:''}</p>
+        </div>
+        <button onClick={()=>{setForm({...EMPTY,date:new Date().toISOString().split('T')[0]});setEditIdx(null);setShowForm(true);}} style={{background:'#7b1c2e',color:'#fff',border:'none',borderRadius:'9px',padding:'10px 20px',fontSize:'13px',fontWeight:600,cursor:'pointer'}}>+ Add Purchase</button>
+      </div>
+
+      <div style={{marginBottom:'16px'}}>
+        <input type='text' placeholder='Search by item or vendor...' value={search} onChange={e=>setSearch(e.target.value)} style={{...inp,maxWidth:'320px'}} />
+      </div>
+
+      <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'14px',overflow:'hidden'}}>
+        {loading?<div style={{padding:'48px',textAlign:'center',color:'#4b5563'}}>Loading...</div>
+        :filtered.length===0?(
+          <div style={{padding:'60px',textAlign:'center'}}>
+            <div style={{fontSize:'40px',marginBottom:'14px'}}>🛒</div>
+            <div style={{color:'#fff',fontWeight:700,marginBottom:'6px'}}>{purchases.length===0?'No purchases yet':'No results'}</div>
+            <div style={{color:'#4b5563',fontSize:'13px'}}>{purchases.length===0?'Add your first purchase to track costs.':'Try a different search.'}</div>
           </div>
-        ))}
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <span style={{ color: '#9ca3af', fontSize: '13px' }}>{items.length} purchases</span>
-        <button onClick={() => { setShowForm(true); setEditId(null); setForm({ ...EMPTY }); }} style={{ background: '#7b1c2e', color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 18px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>+ Add Purchase</button>
-      </div>
-
-      <div style={card}>
-        {loading ? <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>Loading...</div> : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr>{['Date', 'Supplier', 'Peptide', 'Qty', 'Unit Cost', 'Total', 'Batch', ''].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+        ):(
+          <table style={{width:'100%',borderCollapse:'collapse'}}>
+            <thead><tr>{['Date','Vendor','Item','Qty','Unit Cost','Discount','Total',''].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
             <tbody>
-              {items.length === 0 ? (
-                <tr><td colSpan={8} style={{ ...td, textAlign: 'center', padding: '32px', color: '#4b5563' }}>No purchases yet. Add your first lab purchase.</td></tr>
-              ) : items.map(p => (
-                <tr key={p.id} onMouseOver={e => e.currentTarget.style.background = '#222'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-                  <td style={td}>{p.date}</td>
-                  <td style={td}>{p.supplier}</td>
-                  <td style={{ ...td, color: '#fff', fontWeight: 600 }}>{p.peptide}</td>
-                  <td style={td}>{p.quantity}</td>
-                  <td style={td}>${parseFloat(p.unitCost || '0').toFixed(2)}</td>
-                  <td style={{ ...td, color: '#c0394f', fontWeight: 700 }}>${parseFloat(p.totalCost || '0').toFixed(2)}</td>
-                  <td style={{ ...td, color: '#6b7280', fontSize: '11px' }}>{p.batchNo}</td>
+              {filtered.map((p, i) => (
+                <tr key={i} onMouseOver={e=>e.currentTarget.style.background='#1f1f1f'} onMouseOut={e=>e.currentTarget.style.background='transparent'}>
+                  <td style={{...td,color:'#6b7280',whiteSpace:'nowrap'}}>{p.date||'—'}</td>
+                  <td style={td}>{p.vendor||'—'}</td>
+                  <td style={{...td,color:'#fff',fontWeight:600}}>{p.item}</td>
+                  <td style={td}>{p.quantity} {p.unit}</td>
+                  <td style={td}>{p.unitCost?'$'+parseFloat(p.unitCost).toFixed(2):'—'}</td>
                   <td style={td}>
-                    <button onClick={() => { setForm({ date: p.date, supplier: p.supplier, peptide: p.peptide, quantity: p.quantity, unitCost: p.unitCost, totalCost: p.totalCost, batchNo: p.batchNo, notes: p.notes }); setEditId(p.id); setShowForm(true); }} style={{ background: 'transparent', border: '1px solid #3a3a3a', borderRadius: '6px', color: '#9ca3af', fontSize: '11px', padding: '4px 10px', cursor: 'pointer' }}>Edit</button>
+                    {p.discount?(
+                      <span style={{background:'rgba(16,185,129,0.1)',border:'1px solid rgba(16,185,129,0.2)',borderRadius:'20px',padding:'2px 8px',color:'#34d399',fontSize:'11px',fontWeight:600}}>
+                        -{p.discount}%
+                      </span>
+                    ):'—'}
+                  </td>
+                  <td style={{...td,color:'#34d399',fontWeight:700}}>{p.totalCost?'$'+parseFloat(p.totalCost).toLocaleString('en-US',{minimumFractionDigits:2}):'—'}</td>
+                  <td style={td}>
+                    <div style={{display:'flex',gap:'6px'}}>
+                      <button onClick={()=>{setForm({date:p.date||'',vendor:p.vendor||'',item:p.item||'',quantity:p.quantity||'',unit:p.unit||'',unitCost:p.unitCost||'',discount:p.discount||'',notes:p.notes||''});setEditIdx(p.id||i);setShowForm(true);}} style={{background:'#242424',border:'1px solid #2a2a2a',borderRadius:'6px',color:'#9ca3af',fontSize:'11px',padding:'4px 10px',cursor:'pointer'}}>Edit</button>
+                      <button onClick={()=>del(p.id||i,p.item)} style={{background:'transparent',border:'1px solid #2a2a2a',borderRadius:'6px',color:'#6b7280',fontSize:'11px',padding:'4px 10px',cursor:'pointer'}} onMouseOver={e=>{e.currentTarget.style.color='#f87171';e.currentTarget.style.borderColor='rgba(239,68,68,0.35)';}} onMouseOut={e=>{e.currentTarget.style.color='#6b7280';e.currentTarget.style.borderColor='#2a2a2a';}}>Delete</button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -85,34 +124,52 @@ export default function PurchasesPage() {
         )}
       </div>
 
-      {showForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '520px' }}>
-            <h2 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: '0 0 20px' }}>{editId ? 'Edit' : 'Add'} Lab Purchase</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-              {(['date', 'supplier', 'peptide', 'batchNo', 'quantity', 'unitCost']).map(k => (
-                <div key={k}>
-                  <label style={label}>{k === 'unitCost' ? 'Unit Cost ($)' : k === 'batchNo' ? 'Batch #' : k.charAt(0).toUpperCase() + k.slice(1)}</label>
-                  <input type={k === 'date' ? 'date' : k === 'quantity' || k === 'unitCost' ? 'number' : 'text'} value={form[k]} style={inp}
-                    onChange={e => {
-                      const upd = { ...form, [k]: e.target.value };
-                      if (k === 'quantity' || k === 'unitCost') upd.totalCost = calc(k === 'quantity' ? e.target.value : form.quantity, k === 'unitCost' ? e.target.value : form.unitCost);
-                      setForm(upd);
-                    }} />
+      {/* Add/Edit Modal */}
+      {showForm&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.8)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:50}}>
+          <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'18px',padding:'32px',width:'100%',maxWidth:'520px',boxShadow:'0 32px 64px rgba(0,0,0,0.5)',maxHeight:'90vh',overflowY:'auto'}}>
+            <h2 style={{color:'#fff',fontSize:'20px',fontWeight:800,margin:'0 0 24px'}}>{editIdx!==null?'Edit Purchase':'Add Purchase'}</h2>
+
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px',marginBottom:'12px'}}>
+              <div><label style={lbl}>Date</label><input type='date' value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))} style={{...inp,colorScheme:'dark'}} /></div>
+              <div><label style={lbl}>Vendor / Supplier</label><input type='text' placeholder='e.g. Distributor' value={form.vendor} onChange={e=>setForm(p=>({...p,vendor:e.target.value}))} style={inp} /></div>
+              <div style={{gridColumn:'1/-1'}}><label style={lbl}>Item / Peptide *</label><input type='text' placeholder='e.g. Tirzepatide 10mg' value={form.item} onChange={e=>setForm(p=>({...p,item:e.target.value}))} style={inp} autoFocus /></div>
+              <div><label style={lbl}>Quantity</label><input type='number' placeholder='e.g. 10' value={form.quantity} onChange={e=>setForm(p=>({...p,quantity:e.target.value}))} style={inp} /></div>
+              <div><label style={lbl}>Unit</label><input type='text' placeholder='vials, units' value={form.unit} onChange={e=>setForm(p=>({...p,unit:e.target.value}))} style={inp} /></div>
+              <div><label style={lbl}>Unit Cost ($)</label><input type='number' step='0.01' placeholder='e.g. 130' value={form.unitCost} onChange={e=>setForm(p=>({...p,unitCost:e.target.value}))} style={inp} /></div>
+              <div>
+                <label style={lbl}>Discount (%)</label>
+                <div style={{position:'relative'}}>
+                  <input type='number' min='0' max='100' step='0.1' placeholder='e.g. 10' value={form.discount} onChange={e=>setForm(p=>({...p,discount:e.target.value}))} style={{...inp,paddingRight:'32px'}} />
+                  <span style={{position:'absolute',right:'12px',top:'50%',transform:'translateY(-50%)',color:'#6b7280',fontSize:'14px',pointerEvents:'none'}}>%</span>
                 </div>
-              ))}
+              </div>
+              <div style={{gridColumn:'1/-1'}}><label style={lbl}>Notes</label><input type='text' placeholder='Optional' value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} style={inp} /></div>
             </div>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={label}>Total Cost (auto)</label>
-              <div style={{ background: '#111', border: '1px solid #333', borderRadius: '8px', padding: '9px 12px', color: '#c0394f', fontWeight: 700, fontSize: '15px' }}>${form.totalCost || '0.00'}</div>
-            </div>
-            <div style={{ marginBottom: '20px' }}>
-              <label style={label}>Notes</label>
-              <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} style={{ ...inp, resize: 'none', height: '60px' }} />
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={save} disabled={saving} style={{ flex: 1, background: '#7b1c2e', color: '#fff', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>{saving ? 'Saving...' : 'Save Purchase'}</button>
-              <button onClick={() => { setShowForm(false); setForm({ ...EMPTY }); setEditId(null); }} style={{ flex: 1, background: '#242424', color: '#9ca3af', border: '1px solid #333', borderRadius: '8px', padding: '12px', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
+
+            {/* Live price breakdown */}
+            {(form.quantity||form.unitCost) && (
+              <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid #2a2a2a',borderRadius:'10px',padding:'14px',marginBottom:'16px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:'13px',color:'#6b7280',marginBottom:'6px'}}>
+                  <span>Subtotal ({form.quantity||0} × ${form.unitCost||0})</span>
+                  <span style={{color:'#9ca3af'}}>${fSub.toFixed(2)}</span>
+                </div>
+                {form.discount && parseFloat(form.discount)>0 && (
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:'13px',color:'#34d399',marginBottom:'6px'}}>
+                    <span>Discount ({form.discount}%)</span>
+                    <span>-${fDisc.toFixed(2)}</span>
+                  </div>
+                )}
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:'15px',fontWeight:700,color:'#fff',borderTop:'1px solid #2a2a2a',paddingTop:'8px',marginTop:'4px'}}>
+                  <span>Total</span>
+                  <span style={{color:'#34d399'}}>${fTotal.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+
+            <div style={{display:'flex',gap:'10px'}}>
+              <button onClick={save} disabled={saving||!form.item.trim()} style={{flex:1,background:form.item.trim()&&!saving?'#7b1c2e':'#2d0e18',color:form.item.trim()&&!saving?'#fff':'#5a2030',border:'none',borderRadius:'10px',padding:'13px',fontSize:'14px',fontWeight:700,cursor:form.item.trim()&&!saving?'pointer':'not-allowed'}}>{saving?'Saving...':editIdx!==null?'Save Changes':'Add Purchase'}</button>
+              <button onClick={()=>{setShowForm(false);setForm({...EMPTY});setEditIdx(null);}} style={{flex:1,background:'#242424',color:'#9ca3af',border:'1px solid #2a2a2a',borderRadius:'10px',padding:'13px',fontSize:'14px',cursor:'pointer'}}>Cancel</button>
             </div>
           </div>
         </div>
