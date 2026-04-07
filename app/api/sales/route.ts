@@ -11,14 +11,28 @@ function getSheets() {
 }
 const SID = () => process.env.GOOGLE_SHEETS_CRM_ID;
 
+// Sanitize referredBy - must be a non-numeric string (a name)
+function cleanReferredBy(val: string): string {
+  if (!val) return '';
+  // If it looks like a number or dollar amount, it's bad data from old schema
+  if (/^\$?[\d,]+\.?\d*$/.test(val.trim())) return '';
+  return val;
+}
+
 // Cols A-G: date, customer, lines, total, notes, referredBy, referralCredit
 export async function GET() {
   try {
     const sheets = getSheets();
     const res = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: 'Sales!A2:G' });
     const sales = (res.data.values || []).map((r, i) => ({
-      id: String(i), date: r[0]||'', customer: r[1]||'', lines: r[2]||'[]',
-      total: r[3]||'', notes: r[4]||'', referredBy: r[5]||'', referralCredit: r[6]||'',
+      id: String(i),
+      date: r[0]||'',
+      customer: r[1]||'',
+      lines: r[2]||'[]',
+      total: r[3]||'',
+      notes: r[4]||'',
+      referredBy: cleanReferredBy(r[5]||''),
+      referralCredit: r[6]||'',
     }));
     return NextResponse.json({ sales });
   } catch (e) { return NextResponse.json({ sales: [], error: String(e) }, { status: 500 }); }
@@ -38,16 +52,13 @@ async function decrementInventory(sheets, lines) {
   } catch (e) { console.error('inv decrement:', e?.message); }
 }
 
-// Add $20 referral credit to referring customer's CRM record
 async function addReferralCredit(sheets, referrerName) {
   try {
     const res = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: 'Customers!A2:J' });
     const rows = res.data.values || [];
     const idx = rows.findIndex(r => r[1]?.toLowerCase().trim() === referrerName.toLowerCase().trim());
     if (idx >= 0) {
-      // Col J (index 9) = referralCredits
-      const current = parseFloat(rows[idx][9]) || 0;
-      const newCredit = current + 20;
+      const newCredit = (parseFloat(rows[idx][9])||0) + 20;
       await sheets.spreadsheets.values.update({ spreadsheetId: SID(), range: `Customers!J${idx+2}`, valueInputOption: 'RAW', requestBody: { values: [[String(newCredit)]] } });
     }
   } catch (e) { console.error('referral credit:', e?.message); }
@@ -58,6 +69,7 @@ export async function POST(req) {
   try {
     const sheets = getSheets();
     const row = (s) => [s.date||'', s.customer||'', s.lines||'[]', s.total||'', s.notes||'', s.referredBy||'', s.referralCredit||''];
+
     if (action === 'add') {
       await sheets.spreadsheets.values.append({ spreadsheetId: SID(), range: 'Sales!A:G', valueInputOption: 'RAW', requestBody: { values: [row(s)] } });
       try { const lines = JSON.parse(s.lines||'[]'); await decrementInventory(sheets, lines); } catch {}
@@ -75,6 +87,23 @@ export async function POST(req) {
       const sheetId = sheet?.properties?.sheetId || 0;
       await sheets.spreadsheets.batchUpdate({ spreadsheetId: SID(), requestBody: { requests: [{ deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: Number(index)+1, endIndex: Number(index)+2 } } }] } });
       return NextResponse.json({ success: true });
+    }
+    // Clean up bad referredBy data (numeric values from old schema)
+    if (action === 'cleanup_referrals') {
+      const res = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: 'Sales!A2:G' });
+      const rows = res.data.values || [];
+      let fixed = 0;
+      for (let i = 0; i < rows.length; i++) {
+        const referredBy = rows[i][5] || '';
+        if (referredBy && /^\$?[\d,]+\.?\d*$/.test(referredBy.trim())) {
+          await sheets.spreadsheets.values.update({
+            spreadsheetId: SID(), range: `Sales!F${i+2}:G${i+2}`,
+            valueInputOption: 'RAW', requestBody: { values: [['', '']] }
+          });
+          fixed++;
+        }
+      }
+      return NextResponse.json({ success: true, fixed, message: `Cleared bad referral data from ${fixed} rows` });
     }
     return NextResponse.json({ error: 'Unknown action' });
   } catch (e) { return NextResponse.json({ error: String(e) }, { status: 500 }); }
