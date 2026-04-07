@@ -130,9 +130,11 @@ export default function SalesPage() {
                       {s.referredBy?(
                         <div>
                           <div style={{color:'#a78bfa',fontSize:'12px',fontWeight:600}}>👤 {s.referredBy}</div>
-                          <div style={{color:'#6b7280',fontSize:'11px'}}>+$20 credit</div>
+                          <div style={{color:'#6b7280',fontSize:'11px'}}>+$20 credit applied</div>
                         </div>
-                      ):<span style={{color:'#374151'}}>—</span>}
+                      ):(
+                        <span style={{color:'#374151',fontSize:'12px',cursor:'default'}} title='No referral recorded for this sale'>+ $20 referral</span>
+                      )}
                     </td>
                     <td style={{...td,color:'#6b7280',fontSize:'12px',maxWidth:'160px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.notes||'—'}</td>
                     <td style={td} onClick={e=>e.stopPropagation()}>
