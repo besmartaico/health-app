@@ -5,18 +5,27 @@ import { useState, useEffect } from 'react';
 const LOGO = 'https://images.squarespace-cdn.com/content/v1/69270d3f55d63e364a913bdd/68b6d2d1-03ce-44bb-88c2-85618d6a7eff/BeSmartAI.png?format=300w';
 
 const PEPTIDE_DESCRIPTIONS = {
-  'BPC-157': 'Tissue repair & healing',
-  'TB-500': 'Muscle recovery & flexibility',
-  'CJC-1295 + Ipamorelin': 'Growth hormone & muscle growth',
-  'Semaglutide': 'Weight management & metabolic health',
-  'Tirzepatide': 'Advanced weight management',
-  'NAD+': 'Cellular energy & longevity',
-  'Sermorelin': 'Growth hormone stimulation',
-  'GHK-Cu': 'Skin rejuvenation & collagen',
-  'PT-141': 'Sexual health & wellness',
-  'Oxytocin': 'Mood & social connection',
-  'MK-677': 'Lean muscle & sleep quality',
-  'Ipamorelin': 'Clean GH release & anti-aging',
+  '5 Amino 1MQ':   'Metabolic boost & fat loss support',
+  'BPC157TB500':    'Tissue repair, recovery & healing',
+  'Glow':          'Skin rejuvenation & anti-aging',
+  'ImmunoGlow':    'Immune support & radiant health',
+  'IPAM':          'Clean GH release & anti-aging',
+  'Mots-c':        'Metabolic health & longevity',
+  'NAD+':          'Cellular energy & vitality',
+  'Retatrutide':   'Advanced weight management',
+  'Tirzepatide':   'Weight management & metabolic health',
+};
+
+const ICONS = {
+  '5 Amino 1MQ': '🔥',
+  'BPC157TB500':  '🩹',
+  'Glow':         '✨',
+  'ImmunoGlow':   '🛡️',
+  'IPAM':         '⚡',
+  'Mots-c':       '🔬',
+  'NAD+':         '⚗️',
+  'Retatrutide':  '⚖️',
+  'Tirzepatide':  '💊',
 };
 
 export default function HomePage() {
@@ -31,7 +40,7 @@ export default function HomePage() {
       .catch(() => setPostersLoading(false));
   }, []);
 
-  const peptideCount = posters.length > 0 ? posters.length : Object.keys(PEPTIDE_DESCRIPTIONS).length;
+  const count = posters.length || 9;
 
   return (
     <div style={{ fontFamily: 'Inter,system-ui,sans-serif', background: '#0a0a0a', minHeight: '100vh', color: '#fff' }}>
@@ -52,7 +61,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Nav - no View All Posters button */}
+      {/* Nav */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(10,10,10,0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 24px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ background: '#fff', borderRadius: '8px', padding: '5px 14px' }}>
           <img src={LOGO} alt='BeSmart Health' style={{ height: '28px', display: 'block' }} />
@@ -60,7 +69,7 @@ export default function HomePage() {
         <a href='/admin' style={{ background: '#7b1c2e', color: '#fff', textDecoration: 'none', fontSize: '14px', padding: '9px 20px', borderRadius: '8px', fontWeight: 600 }}>Admin Portal</a>
       </nav>
 
-      {/* Hero - no red oval badge */}
+      {/* Hero */}
       <section style={{ textAlign: 'center', padding: '80px 24px 60px', maxWidth: '860px', margin: '0 auto' }}>
         <h1 style={{ fontSize: 'clamp(36px,6vw,64px)', fontWeight: 900, lineHeight: 1.1, margin: '0 0 20px', letterSpacing: '-1.5px' }}>
           Precision Wellness<br />
@@ -72,11 +81,11 @@ export default function HomePage() {
         <a href='#peptides' style={{ display: 'inline-block', background: '#7b1c2e', color: '#fff', textDecoration: 'none', padding: '14px 32px', borderRadius: '10px', fontWeight: 700, fontSize: '15px' }}>View Our Peptides</a>
       </section>
 
-      {/* Stats bar - updated messaging */}
+      {/* Stats bar */}
       <section style={{ borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: '32px', textAlign: 'center' }}>
           {[
-            [peptideCount + '+', 'Compounded Peptides'],
+            [count + '+', 'Compounded Peptides'],
             ['98%+', '3rd Party Tested'],
             ['✓', 'Lab Verified Quality'],
             ['100%', 'Batch Documented'],
@@ -113,38 +122,35 @@ export default function HomePage() {
       <section id='peptides' style={{ padding: '48px 24px 80px', maxWidth: '1100px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <h2 style={{ fontSize: '36px', fontWeight: 800, margin: '0 0 10px', letterSpacing: '-0.5px' }}>Our Peptides</h2>
-          <p style={{ color: '#6b7280', fontSize: '15px', margin: 0 }}>{posters.length > 0 ? 'Click any peptide to view its information poster' : 'Our full peptide lineup'}</p>
+          <p style={{ color: '#6b7280', fontSize: '15px', margin: 0 }}>Click any peptide to view its information poster</p>
         </div>
         {postersLoading ? (
           <div style={{ textAlign: 'center', color: '#4b5563', padding: '40px' }}>Loading peptides...</div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: '14px' }}>
-            {(posters.length > 0 ? posters : Object.keys(PEPTIDE_DESCRIPTIONS).map(n => ({ name: n, id: null }))).map(item => {
-              const name = item.name;
-              const desc = PEPTIDE_DESCRIPTIONS[name] || 'Therapeutic peptide';
-              const hasPoster = !!item.id;
+            {posters.map(item => {
+              const desc = PEPTIDE_DESCRIPTIONS[item.name] || 'Therapeutic peptide';
+              const icon = ICONS[item.name] || '💉';
               return (
                 <div
-                  key={name}
-                  onClick={hasPoster ? () => setSelectedPoster(item) : undefined}
-                  style={{ background: '#111', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', padding: '20px', cursor: hasPoster ? 'pointer' : 'default', position: 'relative', overflow: 'hidden' }}
-                  onMouseOver={e => { if (hasPoster) { e.currentTarget.style.borderColor='rgba(192,57,79,0.5)'; e.currentTarget.style.background='rgba(123,28,46,0.1)'; }}}
+                  key={item.id}
+                  onClick={() => setSelectedPoster(item)}
+                  style={{ background: '#111', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', padding: '20px', cursor: 'pointer', position: 'relative', overflow: 'hidden', transition: 'all 0.15s' }}
+                  onMouseOver={e => { e.currentTarget.style.borderColor='rgba(192,57,79,0.5)'; e.currentTarget.style.background='rgba(123,28,46,0.1)'; }}
                   onMouseOut={e => { e.currentTarget.style.borderColor='rgba(255,255,255,0.07)'; e.currentTarget.style.background='#111'; }}
                 >
-                  {hasPoster && <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(192,57,79,0.15)', border: '1px solid rgba(192,57,79,0.3)', borderRadius: '4px', fontSize: '9px', color: '#c0394f', padding: '2px 6px', fontWeight: 700, letterSpacing: '0.05em' }}>VIEW</div>}
-                  <div style={{ fontSize: '28px', marginBottom: '10px' }}>💉</div>
-                  <div style={{ fontWeight: 700, fontSize: '15px', marginBottom: '5px' }}>{name}</div>
+                  <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(192,57,79,0.15)', border: '1px solid rgba(192,57,79,0.3)', borderRadius: '4px', fontSize: '9px', color: '#c0394f', padding: '2px 6px', fontWeight: 700, letterSpacing: '0.05em' }}>VIEW</div>
+                  <div style={{ fontSize: '28px', marginBottom: '10px' }}>{icon}</div>
+                  <div style={{ fontWeight: 700, fontSize: '15px', marginBottom: '5px' }}>{item.name}</div>
                   <div style={{ color: '#6b7280', fontSize: '12px', lineHeight: 1.4 }}>{desc}</div>
                 </div>
               );
             })}
           </div>
         )}
-        {posters.length > 0 && (
-          <div style={{ textAlign: 'center', marginTop: '32px' }}>
-            <a href='/posters' style={{ display: 'inline-block', background: 'rgba(255,255,255,0.04)', color: '#9ca3af', textDecoration: 'none', padding: '12px 28px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', fontSize: '14px', fontWeight: 600 }}>View All Peptide Posters →</a>
-          </div>
-        )}
+        <div style={{ textAlign: 'center', marginTop: '32px' }}>
+          <a href='/posters' style={{ display: 'inline-block', background: 'rgba(255,255,255,0.04)', color: '#9ca3af', textDecoration: 'none', padding: '12px 28px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', fontSize: '14px', fontWeight: 600 }}>View All Peptide Posters →</a>
+        </div>
       </section>
 
       {/* Footer */}
