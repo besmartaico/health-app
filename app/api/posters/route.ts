@@ -1,55 +1,26 @@
 // @ts-nocheck
 import { NextResponse } from 'next/server';
-import { google } from 'googleapis';
 
-const POSTER_FOLDER_ID = '1uI1QUaT1OswJ1eJOzCs5ohwc0tiF7dm9';
-
-function getAuth() {
-  return new google.auth.GoogleAuth({
-    credentials: {
-      client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    },
-    scopes: [
-      'https://www.googleapis.com/auth/drive',
-      'https://www.googleapis.com/auth/drive.readonly',
-      'https://www.googleapis.com/auth/spreadsheets',
-    ],
-  });
-}
+// Static poster config - no Drive API call needed
+const POSTERS = [
+  { id: '1MW1CqY0IE4FyivWNJ6mlFOJbG01QkXQg', name: '5 Amino 1MQ',  mimeType: 'image/png' },
+  { id: '1LXwp_zRwOCHD1TuLpMF38KKyEgjQDkny', name: 'BPC157TB500', mimeType: 'image/png' },
+  { id: '1gBE_64Bh7maZyGmZQ2sTlkAbsHw9lsHL', name: 'Glow',         mimeType: 'image/jpeg' },
+  { id: '1Se3F4ISuBPjeuTy9yXJ2ZUEy_GSNRC83', name: 'ImmunoGlow',   mimeType: 'image/png' },
+  { id: '1RcP7GzwBSiPU8b0rc70as8VUB7KAONYD', name: 'IPAM',          mimeType: 'image/png' },
+  { id: '1ztPh3fT-4A2Rx8AQmg76QFjy0IHky-cA', name: 'Mots-c',       mimeType: 'image/png' },
+  { id: '1rfXy94Bzr97GVJu7Cy91nw6IDfzTRQyJ', name: 'NAD+',          mimeType: 'image/png' },
+  { id: '1iMkbFR6n6oKJ5czVGGKercNewyvXB9-y', name: 'Retatrutide',  mimeType: 'image/png' },
+  { id: '15bFjJw2OTHFjwKjkrWMWXx98cuJuo_xF', name: 'Tirzepatide',  mimeType: 'image/png' },
+];
 
 export async function GET() {
-  try {
-    const auth = getAuth();
-    const drive = google.drive({ version: 'v3', auth });
-    const res = await drive.files.list({
-      q: `'${POSTER_FOLDER_ID}' in parents and trashed=false`,
-      fields: 'files(id,name,mimeType,webViewLink,thumbnailLink)',
-      orderBy: 'name',
-      pageSize: 100,
-      supportsAllDrives: true,
-      includeItemsFromAllDrives: true,
-    });
-    const files = (res.data.files || []).map(f => {
-      const id = f.id || '';
-      const rawName = f.name || '';
-      const name = rawName.replace(/\.(pdf|png|jpg|jpeg|heic|webp)$/i, '');
-      const isImage = /image/.test(f.mimeType || '');
-      const isPdf = /pdf/.test(f.mimeType || '');
-      return {
-        id,
-        name,
-        mimeType: f.mimeType,
-        viewUrl: f.webViewLink || `https://drive.google.com/file/d/${id}/view`,
-        embedUrl: isPdf
-          ? `https://drive.google.com/file/d/${id}/preview`
-          : `https://drive.google.com/file/d/${id}/preview`,
-        thumbnailUrl: f.thumbnailLink ? f.thumbnailLink.replace('s220','s400') : null,
-      };
-    });
-    return NextResponse.json({ posters: files, count: files.length });
-  } catch (e: any) {
-    console.error('Posters API error:', e?.message);
-    return NextResponse.json({ posters: [], error: e?.message || String(e) }, { status: 500 });
-  }
+  const posters = POSTERS.map(p => ({
+    ...p,
+    // Image served from our own domain via proxy - no Drive URLs exposed
+    imageUrl: `/api/poster-image/${p.id}`,
+    embedUrl: `/api/poster-image/${p.id}`,
+    viewUrl: `/api/poster-image/${p.id}`,
+  }));
+  return NextResponse.json({ posters, count: posters.length });
 }

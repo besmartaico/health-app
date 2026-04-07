@@ -5,39 +5,32 @@ import { useState, useEffect } from 'react';
 const LOGO = 'https://images.squarespace-cdn.com/content/v1/69270d3f55d63e364a913bdd/68b6d2d1-03ce-44bb-88c2-85618d6a7eff/BeSmartAI.png?format=300w';
 
 const PEPTIDE_DESCRIPTIONS = {
-  '5 Amino 1MQ':   'Metabolic boost & fat loss support',
-  'BPC157TB500':    'Tissue repair, recovery & healing',
-  'Glow':          'Skin rejuvenation & anti-aging',
-  'ImmunoGlow':    'Immune support & radiant health',
-  'IPAM':          'Clean GH release & anti-aging',
-  'Mots-c':        'Metabolic health & longevity',
-  'NAD+':          'Cellular energy & vitality',
-  'Retatrutide':   'Advanced weight management',
-  'Tirzepatide':   'Weight management & metabolic health',
+  '5 Amino 1MQ':  'Metabolic boost & fat loss support',
+  'BPC157TB500':  'Tissue repair, recovery & healing',
+  'Glow':         'Skin rejuvenation & anti-aging',
+  'ImmunoGlow':   'Immune support & radiant health',
+  'IPAM':         'Clean GH release & anti-aging',
+  'Mots-c':       'Metabolic health & longevity',
+  'NAD+':         'Cellular energy & vitality',
+  'Retatrutide':  'Advanced weight management',
+  'Tirzepatide':  'Weight management & metabolic health',
 };
 
 const ICONS = {
-  '5 Amino 1MQ': '🔥',
-  'BPC157TB500':  '🩹',
-  'Glow':         '✨',
-  'ImmunoGlow':   '🛡️',
-  'IPAM':         '⚡',
-  'Mots-c':       '🔬',
-  'NAD+':         '⚗️',
-  'Retatrutide':  '⚖️',
-  'Tirzepatide':  '💊',
+  '5 Amino 1MQ': '🔥', 'BPC157TB500': '🩹', 'Glow': '✨',
+  'ImmunoGlow': '🛡️', 'IPAM': '⚡', 'Mots-c': '🔬',
+  'NAD+': '⚗️', 'Retatrutide': '⚖️', 'Tirzepatide': '💊',
 };
 
 export default function HomePage() {
   const [posters, setPosters] = useState([]);
-  const [selectedPoster, setSelectedPoster] = useState(null);
-  const [postersLoading, setPostersLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/posters')
-      .then(r => r.json())
-      .then(d => { setPosters(d.posters || []); setPostersLoading(false); })
-      .catch(() => setPostersLoading(false));
+    fetch('/api/posters').then(r => r.json()).then(d => {
+      setPosters(d.posters || []); setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
   const count = posters.length || 9;
@@ -45,18 +38,17 @@ export default function HomePage() {
   return (
     <div style={{ fontFamily: 'Inter,system-ui,sans-serif', background: '#0a0a0a', minHeight: '100vh', color: '#fff' }}>
 
-      {/* Poster Modal */}
-      {selectedPoster && (
-        <div onClick={() => setSelectedPoster(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.93)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div onClick={e => e.stopPropagation()} style={{ position: 'relative', maxWidth: '720px', width: '100%', maxHeight: '92vh', background: '#111', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.8)', display: 'flex', flexDirection: 'column' }}>
+      {/* Poster Modal - shows image directly, no Drive URLs */}
+      {selected && (
+        <div onClick={() => setSelected(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.93)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ position: 'relative', maxWidth: '800px', width: '100%', maxHeight: '92vh', background: '#111', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.8)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '14px 20px', background: '#1a1a1a', borderBottom: '1px solid #2a2a2a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>{selectedPoster.name}</h3>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                <a href={selectedPoster.viewUrl} target='_blank' rel='noreferrer' style={{ color: '#c0394f', fontSize: '13px', textDecoration: 'none', fontWeight: 600 }}>Open Full ↗</a>
-                <button onClick={() => setSelectedPoster(null)} style={{ background: '#2a2a2a', border: 'none', borderRadius: '6px', width: '28px', height: '28px', color: '#9ca3af', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-              </div>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>{selected.name}</h3>
+              <button onClick={() => setSelected(null)} style={{ background: '#2a2a2a', border: 'none', borderRadius: '6px', width: '32px', height: '32px', color: '#9ca3af', fontSize: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
             </div>
-            <iframe src={selectedPoster.embedUrl} style={{ width: '100%', flex: 1, minHeight: '500px', border: 'none' }} allow='autoplay' />
+            <div style={{ overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', minHeight: '400px' }}>
+              <img src={selected.imageUrl} alt={selected.name} style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain', display: 'block' }} />
+            </div>
           </div>
         </div>
       )}
@@ -84,16 +76,8 @@ export default function HomePage() {
       {/* Stats bar */}
       <section style={{ borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: '32px', textAlign: 'center' }}>
-          {[
-            [count + '+', 'Compounded Peptides'],
-            ['98%+', '3rd Party Tested'],
-            ['✓', 'Lab Verified Quality'],
-            ['100%', 'Batch Documented'],
-          ].map(([num, label]) => (
-            <div key={label}>
-              <div style={{ fontSize: '32px', fontWeight: 900, color: '#c0394f', marginBottom: '4px' }}>{num}</div>
-              <div style={{ color: '#6b7280', fontSize: '13px', fontWeight: 500 }}>{label}</div>
-            </div>
+          {[[''+count+'+','Compounded Peptides'],['98%+','3rd Party Tested'],['✓','Lab Verified Quality'],['100%','Batch Documented']].map(([num,label])=>(
+            <div key={label}><div style={{ fontSize:'32px',fontWeight:900,color:'#c0394f',marginBottom:'4px' }}>{num}</div><div style={{ color:'#6b7280',fontSize:'13px',fontWeight:500 }}>{label}</div></div>
           ))}
         </div>
       </section>
@@ -101,18 +85,10 @@ export default function HomePage() {
       {/* Trust badges */}
       <section style={{ padding: '48px 24px', maxWidth: '900px', margin: '0 auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '16px' }}>
-          {[
-            ['🔬', '3rd Party Tested', 'Every batch independently tested at 98%+ purity'],
-            ['✅', 'Lab Verified Quality', 'Rigorous quality control on every formulation'],
-            ['⚗️', 'Compounded Peptides', 'Custom-formulated to your specific protocol'],
-            ['🩺', 'Expert Guidance', 'Personalized dosing protocols & ongoing support'],
-          ].map(([icon, title, desc]) => (
-            <div key={title} style={{ background: '#111', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', padding: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-              <span style={{ fontSize: '28px', flexShrink: 0 }}>{icon}</span>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '15px', marginBottom: '4px' }}>{title}</div>
-                <div style={{ color: '#6b7280', fontSize: '13px', lineHeight: 1.5 }}>{desc}</div>
-              </div>
+          {[['🔬','3rd Party Tested','Every batch independently tested at 98%+ purity'],['✅','Lab Verified Quality','Rigorous quality control on every formulation'],['⚗️','Compounded Peptides','Custom-formulated to your specific protocol'],['🩺','Expert Guidance','Personalized dosing protocols & ongoing support']].map(([icon,title,desc])=>(
+            <div key={title} style={{ background:'#111',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'14px',padding:'24px',display:'flex',gap:'16px',alignItems:'flex-start' }}>
+              <span style={{ fontSize:'28px',flexShrink:0 }}>{icon}</span>
+              <div><div style={{ fontWeight:700,fontSize:'15px',marginBottom:'4px' }}>{title}</div><div style={{ color:'#6b7280',fontSize:'13px',lineHeight:1.5 }}>{desc}</div></div>
             </div>
           ))}
         </div>
@@ -124,42 +100,40 @@ export default function HomePage() {
           <h2 style={{ fontSize: '36px', fontWeight: 800, margin: '0 0 10px', letterSpacing: '-0.5px' }}>Our Peptides</h2>
           <p style={{ color: '#6b7280', fontSize: '15px', margin: 0 }}>Click any peptide to view its information poster</p>
         </div>
-        {postersLoading ? (
-          <div style={{ textAlign: 'center', color: '#4b5563', padding: '40px' }}>Loading peptides...</div>
+        {loading ? (
+          <div style={{ textAlign:'center',color:'#4b5563',padding:'40px' }}>Loading peptides...</div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: '14px' }}>
-            {posters.map(item => {
-              const desc = PEPTIDE_DESCRIPTIONS[item.name] || 'Therapeutic peptide';
-              const icon = ICONS[item.name] || '💉';
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => setSelectedPoster(item)}
-                  style={{ background: '#111', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', padding: '20px', cursor: 'pointer', position: 'relative', overflow: 'hidden', transition: 'all 0.15s' }}
-                  onMouseOver={e => { e.currentTarget.style.borderColor='rgba(192,57,79,0.5)'; e.currentTarget.style.background='rgba(123,28,46,0.1)'; }}
-                  onMouseOut={e => { e.currentTarget.style.borderColor='rgba(255,255,255,0.07)'; e.currentTarget.style.background='#111'; }}
-                >
-                  <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(192,57,79,0.15)', border: '1px solid rgba(192,57,79,0.3)', borderRadius: '4px', fontSize: '9px', color: '#c0394f', padding: '2px 6px', fontWeight: 700, letterSpacing: '0.05em' }}>VIEW</div>
-                  <div style={{ fontSize: '28px', marginBottom: '10px' }}>{icon}</div>
-                  <div style={{ fontWeight: 700, fontSize: '15px', marginBottom: '5px' }}>{item.name}</div>
-                  <div style={{ color: '#6b7280', fontSize: '12px', lineHeight: 1.4 }}>{desc}</div>
+          <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:'14px' }}>
+            {posters.map(item => (
+              <div key={item.id} onClick={() => setSelected(item)}
+                style={{ background:'#111',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'14px',overflow:'hidden',cursor:'pointer',transition:'all 0.15s',position:'relative' }}
+                onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(192,57,79,0.5)';e.currentTarget.style.transform='translateY(-2px)';}}
+                onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.07)';e.currentTarget.style.transform='none';}}
+              >
+                <div style={{ height:'140px',overflow:'hidden',position:'relative',background:'#1a1a1a' }}>
+                  <img src={item.imageUrl} alt={item.name} style={{ width:'100%',height:'100%',objectFit:'cover',objectPosition:'top' }} loading='lazy' />
+                  <div style={{ position:'absolute',inset:0,background:'linear-gradient(to bottom,transparent 60%,rgba(0,0,0,0.5))' }} />
                 </div>
-              );
-            })}
+                <div style={{ padding:'12px 14px' }}>
+                  <div style={{ fontWeight:700,fontSize:'14px',marginBottom:'3px',color:'#fff' }}>{item.name}</div>
+                  <div style={{ color:'#6b7280',fontSize:'11px',lineHeight:1.4 }}>{PEPTIDE_DESCRIPTIONS[item.name]||'Therapeutic peptide'}</div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
-        <div style={{ textAlign: 'center', marginTop: '32px' }}>
-          <a href='/posters' style={{ display: 'inline-block', background: 'rgba(255,255,255,0.04)', color: '#9ca3af', textDecoration: 'none', padding: '12px 28px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', fontSize: '14px', fontWeight: 600 }}>View All Peptide Posters →</a>
+        <div style={{ textAlign:'center',marginTop:'32px' }}>
+          <a href='/posters' style={{ display:'inline-block',background:'rgba(255,255,255,0.04)',color:'#9ca3af',textDecoration:'none',padding:'12px 28px',borderRadius:'10px',border:'1px solid rgba(255,255,255,0.08)',fontSize:'14px',fontWeight:600 }}>View All Peptide Posters →</a>
         </div>
       </section>
 
       {/* Footer */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '32px 24px', textAlign: 'center' }}>
-        <div style={{ background: '#fff', borderRadius: '8px', padding: '5px 14px', display: 'inline-block', marginBottom: '16px' }}>
-          <img src={LOGO} alt='BeSmart Health' style={{ height: '24px', display: 'block' }} />
+      <footer style={{ borderTop:'1px solid rgba(255,255,255,0.06)',padding:'32px 24px',textAlign:'center' }}>
+        <div style={{ background:'#fff',borderRadius:'8px',padding:'5px 14px',display:'inline-block',marginBottom:'16px' }}>
+          <img src={LOGO} alt='BeSmart Health' style={{ height:'24px',display:'block' }} />
         </div>
-        <p style={{ color: '#4b5563', fontSize: '13px', margin: '0 0 8px' }}>Compounded Peptides · 3rd Party Tested · Lab Verified Quality</p>
-        <p style={{ color: '#374151', fontSize: '12px', margin: 0 }}>For educational purposes only. Consult a healthcare professional before use.</p>
+        <p style={{ color:'#4b5563',fontSize:'13px',margin:'0 0 8px' }}>Compounded Peptides · 3rd Party Tested · Lab Verified Quality</p>
+        <p style={{ color:'#374151',fontSize:'12px',margin:0 }}>For educational purposes only. Consult a healthcare professional before use.</p>
       </footer>
     </div>
   );
