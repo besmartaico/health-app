@@ -63,10 +63,10 @@ export default function HomePage() {
       <section style={{ textAlign: 'center', padding: '80px 24px 60px', maxWidth: '860px', margin: '0 auto' }}>
         <h1 style={{ fontSize: 'clamp(36px,6vw,64px)', fontWeight: 900, lineHeight: 1.1, margin: '0 0 20px', letterSpacing: '-1.5px' }}>
           Precision Wellness<br />
-          <span style={{ background: 'linear-gradient(135deg,#c0394f,#7b1c2e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Compounded Peptides</span>
+          <span style={{ background: 'linear-gradient(135deg,#c0394f,#7b1c2e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Peptides</span>
         </h1>
         <p style={{ fontSize: '18px', color: '#9ca3af', lineHeight: 1.7, margin: '0 auto 36px', maxWidth: '580px' }}>
-          Personalized compounded peptide therapies, independently tested and batch-documented for your confidence.
+          Personalized peptide therapies, independently tested and batch-documented for your confidence.
         </p>
         <a href='#peptides' style={{ display: 'inline-block', background: '#7b1c2e', color: '#fff', textDecoration: 'none', padding: '14px 32px', borderRadius: '10px', fontWeight: 700, fontSize: '15px' }}>View Our Peptides</a>
       </section>
@@ -74,7 +74,7 @@ export default function HomePage() {
       {/* Trust badges - replaces stats bar */}
       <section style={{ padding: '48px 24px', maxWidth: '900px', margin: '0 auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '16px' }}>
-          {[['🔬','3rd Party Tested','Every batch independently tested at 98%+ purity'],['✅','Lab Verified Quality','Rigorous quality control on every formulation'],['⚗️','Compounded Peptides','Custom-formulated to your specific protocol'],['🩺','Expert Guidance','Personalized dosing protocols & ongoing support']].map(([icon,title,desc])=>(
+          {[['🔬','3rd Party Tested','Every batch independently tested at 98%+ purity'],['✅','Lab Verified Quality','Rigorous quality control on every formulation'],['⚗️','Peptides','Custom-formulated to your specific protocol'],['🩺','Expert Guidance','Personalized dosing protocols & ongoing support']].map(([icon,title,desc])=>(
             <div key={title} style={{ background:'#111',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'14px',padding:'24px',display:'flex',gap:'16px',alignItems:'flex-start' }}>
               <span style={{ fontSize:'28px',flexShrink:0 }}>{icon}</span>
               <div><div style={{ fontWeight:700,fontSize:'15px',marginBottom:'4px' }}>{title}</div><div style={{ color:'#6b7280',fontSize:'13px',lineHeight:1.5 }}>{desc}</div></div>
@@ -121,7 +121,7 @@ export default function HomePage() {
         <div style={{ background:'#fff',borderRadius:'8px',padding:'5px 14px',display:'inline-block',marginBottom:'16px' }}>
           <img src={LOGO} alt='BeSmart Health' style={{ height:'24px',display:'block' }} />
         </div>
-        <p style={{ color:'#4b5563',fontSize:'13px',margin:'0 0 8px' }}>Compounded Peptides · 3rd Party Tested · Lab Verified Quality</p>
+        <p style={{ color:'#4b5563',fontSize:'13px',margin:'0 0 8px' }}>Peptides · 3rd Party Tested · Lab Verified Quality</p>
         <p style={{ color:'#374151',fontSize:'12px',margin:0 }}>For educational purposes only. Consult a healthcare professional before use.</p>
       </footer>
     </div>
