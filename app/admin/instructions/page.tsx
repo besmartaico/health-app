@@ -2,170 +2,262 @@
 'use client';
 import { useState, useEffect } from 'react';
 
-const PEPTIDES = ['BPC-157','TB-500','CJC-1295','Ipamorelin','Semaglutide','Tirzepatide','NAD+','Sermorelin','GHK-Cu','PT-141','Oxytocin'];
 const inp = { width:'100%', background:'#0f0f0f', border:'1px solid #2a2a2a', borderRadius:'8px', padding:'10px 13px', color:'#fff', fontSize:'14px', outline:'none', boxSizing:'border-box' };
 const lbl = { display:'block', color:'#6b7280', fontSize:'11px', fontWeight:600, marginBottom:'5px', textTransform:'uppercase', letterSpacing:'0.07em' };
-
-const DEFAULT_INSTRUCTIONS = {
-  'BPC-157': `Reconstitution:\n• Add 2mL bacteriostatic water to vial\n• Concentration: 2500 mcg/mL\n\nDosing Protocol:\n• Typical dose: 250-500 mcg twice daily\n• Inject subcutaneously near injury site\n• Morning and evening injections\n\nStorage:\n• Refrigerate after reconstitution\n• Use within 30 days\n• Keep away from light`,
-  'Semaglutide': `Reconstitution:\n• Add 2mL bacteriostatic water to 5mg vial\n• Concentration: 2.5 mg/mL\n\nDosing Protocol (Weekly):\n• Week 1-4: 0.25 mg weekly\n• Week 5-8: 0.5 mg weekly\n• Week 9+: 1 mg weekly (maintenance)\n\nInjection:\n• Subcutaneous injection in abdomen or thigh\n• Rotate injection sites\n• Same day each week`,
-  'Tirzepatide': `Reconstitution:\n• Add 2mL bacteriostatic water to 5mg vial\n\nDosing Protocol (Weekly):\n• Week 1-4: 2.5 mg weekly\n• Week 5-8: 5 mg weekly\n• Week 9+: 7.5 mg as needed\n\nInjection:\n• Subcutaneous, rotate sites\n• Weekly same day`,
-};
+const card = { background:'#1a1a1a', border:'1px solid #2a2a2a', borderRadius:'12px', padding:'20px' };
 
 export default function InstructionsPage() {
-  const [activeTab,setActiveTab]=useState('instructions');
-  const [selectedPeptide,setSelectedPeptide]=useState('BPC-157');
-  const [instructions,setInstructions]=useState({});
-  const [editMode,setEditMode]=useState(false);
-  const [editText,setEditText]=useState('');
-  const [saving,setSaving]=useState(false);
-  const [toast,setToast]=useState('');
-  // Plan generator
-  const [planCustomer,setPlanCustomer]=useState('');
-  const [planCustomerEmail,setPlanCustomerEmail]=useState('');
-  const [planPeptides,setPlanPeptides]=useState([{peptide:'BPC-157',dose:'250',frequency:'twice daily',duration:'8 weeks',notes:''}]);
-  const [planGoal,setPlanGoal]=useState('');
-  const [planLoading,setPlanLoading]=useState(false);
-  const [planResult,setPlanResult]=useState('');
-  const [planError,setPlanError]=useState('');
-  const [sending,setSending]=useState(false);
+  const [peptides, setPeptides] = useState([]); // from purchases
+  const [selected, setSelected] = useState('');
+  const [instructions, setInstructions] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState('');
+  const [toastErr, setToastErr] = useState(false);
 
-  useEffect(()=>{ loadInstructions(); },[]);
+  // Patient plan state
+  const [planPatient, setPlanPatient] = useState('');
+  const [planEmail, setPlanEmail] = useState('');
+  const [planPeptide, setPlanPeptide] = useState('');
+  const [planVialMg, setPlanVialMg] = useState('');
+  const [planReconMl, setPlanReconMl] = useState('2');
+  const [planDoseUnits, setPlanDoseUnits] = useState('');
+  const [planFreq, setPlanFreq] = useState('daily');
+  const [planNotes, setPlanNotes] = useState('');
+  const [sending, setSending] = useState(false);
+  const [planResult, setPlanResult] = useState('');
 
-  const loadInstructions = async () => {
-    try {
-      const r=await fetch('/api/instructions').then(x=>x.json());
-      setInstructions({...DEFAULT_INSTRUCTIONS,...(r.instructions||{})});
-    } catch { setInstructions({...DEFAULT_INSTRUCTIONS}); }
+  useEffect(() => {
+    // Load unique peptides from purchases
+    fetch('/api/purchases').then(r=>r.json()).then(d => {
+      const names = [...new Set((d.purchases||[]).map(p=>p.item).filter(Boolean))].sort();
+      setPeptides(names);
+      if (names.length > 0 && !selected) setSelected(names[0]);
+    });
+    // Load saved instructions
+    fetch('/api/instructions').then(r=>r.json()).then(d => {
+      const map = {};
+      (d.instructions||[]).forEach(i => { map[i.peptide] = i; });
+      setInstructions(map);
+    });
+  }, []);
+
+  // Auto-fill vial mg from instructions when peptide selected for plan
+  useEffect(() => {
+    if (planPeptide && instructions[planPeptide]) {
+      const instr = instructions[planPeptide];
+      if (instr.vialMg) setPlanVialMg(instr.vialMg);
+      if (instr.reconMl) setPlanReconMl(instr.reconMl);
+    }
+  }, [planPeptide, instructions]);
+
+  const currentInstr = instructions[selected] || {};
+
+  const setField = (field, val) => {
+    setInstructions(prev => ({ ...prev, [selected]: { ...(prev[selected]||{peptide:selected}), [field]: val } }));
   };
 
-  const getCurrentText = () => instructions[selectedPeptide]||`No instructions yet for ${selectedPeptide}.\n\nClick Edit to add instructions.`;
+  // Dosage calc: units = (doseMcg / (vialMg*1000/reconMl)) * 100
+  const calcUnitsFromMcg = (doseMcg, vialMg, reconMl) => {
+    const mgF = parseFloat(vialMg), mlF = parseFloat(reconMl), mcgF = parseFloat(doseMcg);
+    if (!mgF || !mlF || !mcgF) return null;
+    const mcgPerMl = (mgF * 1000) / mlF;
+    const drawMl = mcgF / mcgPerMl;
+    return (drawMl * 100).toFixed(1);
+  };
 
-  const startEdit = () => { setEditText(getCurrentText()); setEditMode(true); };
+  const calcMcgFromUnits = (units, vialMg, reconMl) => {
+    const mgF = parseFloat(vialMg), mlF = parseFloat(reconMl), uF = parseFloat(units);
+    if (!mgF || !mlF || !uF) return null;
+    const mcgPerMl = (mgF * 1000) / mlF;
+    const mcg = (uF / 100) * mcgPerMl;
+    return mcg.toFixed(0);
+  };
 
-  const saveEdit = async () => {
+  // Derived dose info for plan
+  const planMcg = planDoseUnits && planVialMg && planReconMl ? calcMcgFromUnits(planDoseUnits, planVialMg, planReconMl) : null;
+
+  const saveInstructions = async () => {
+    if (!selected) return;
     setSaving(true);
     try {
-      const updated={...instructions,[selectedPeptide]:editText};
-      await fetch('/api/instructions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({peptide:selectedPeptide,text:editText})});
-      setInstructions(updated);
-      setEditMode(false);
-      setToast('Instructions saved!');
-      setTimeout(()=>setToast(''),3000);
-    } catch(e){setToast('Error: '+String(e));}
+      const res = await fetch('/api/instructions', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'save', peptide: selected, data: instructions[selected]||{} }) });
+      const d = await res.json();
+      if (d.error) { setToast('Error: '+d.error); setToastErr(true); }
+      else { setToast('Instructions saved!'); setToastErr(false); }
+    } catch(e) { setToast('Error: '+String(e)); setToastErr(true); }
     setSaving(false);
+    setTimeout(() => setToast(''), 3000);
   };
 
-  const addPlanRow = () => setPlanPeptides(p=>[...p,{peptide:'BPC-157',dose:'250',frequency:'daily',duration:'4 weeks',notes:''}]);
-  const removePlanRow = (i) => setPlanPeptides(p=>p.filter((_,idx)=>idx!==i));
-  const updatePlanRow = (i,field,val) => setPlanPeptides(p=>p.map((r,idx)=>idx===i?{...r,[field]:val}:r));
-
-  const generatePlan = async () => {
-    if(!planCustomer.trim()){setPlanError('Please enter customer name.');return;}
-    setPlanLoading(true); setPlanError(''); setPlanResult('');
+  const sendPlan = async () => {
+    if (!planPatient || !planEmail || !planPeptide || !planDoseUnits) return;
+    setSending(true); setPlanResult('');
+    const mcg = planMcg || '?';
     try {
-      const prompt=`Create a personalized peptide protocol plan for ${planCustomer}.\nGoal: ${planGoal||'General wellness'}\n\nPrescribed peptides:\n${planPeptides.map(p=>`- ${p.peptide}: ${p.dose}mcg ${p.frequency} for ${p.duration}${p.notes?', notes: '+p.notes:''}`).join('\n')}\n\nPlease create a professional, detailed patient instruction plan including:\n1. Overview of each peptide and its benefits for their goals\n2. Reconstitution instructions\n3. Exact dosing schedule\n4. Storage instructions\n5. What to expect / timeline\n6. Important safety notes\n\nFormat it as a clean patient-friendly document they can follow.`;
-      const res=await fetch('/api/peptide-ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:prompt})});
-      const d=await res.json();
-      setPlanResult(d.response||d.error||'No response');
-    } catch(e){setPlanError(String(e));}
-    setPlanLoading(false);
-  };
-
-  const emailPlan = async () => {
-    if(!planCustomerEmail){setPlanError('Enter customer email to send.');return;}
-    setSending(true);
-    try {
-      const res=await fetch('/api/send-plan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:planCustomerEmail,name:planCustomer,plan:planResult})});
-      const d=await res.json();
-      if(d.success)setToast('Plan emailed to '+planCustomerEmail+'!');
-      else setPlanError(d.error||'Failed to send');
-    } catch(e){setPlanError(String(e));}
+      const res = await fetch('/api/send-plan', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+        patient: planPatient,
+        email: planEmail,
+        peptide: planPeptide,
+        dose: planDoseUnits + ' units (' + mcg + ' mcg)',
+        vialMg: planVialMg,
+        reconMl: planReconMl,
+        units: planDoseUnits,
+        mcg,
+        frequency: planFreq,
+        notes: planNotes,
+        instructions: instructions[planPeptide]?.text || '',
+      }) });
+      const d = await res.json();
+      setPlanResult(d.success ? '✓ Plan sent to '+planEmail : '⚠ '+d.error);
+    } catch(e) { setPlanResult('⚠ '+String(e)); }
     setSending(false);
   };
 
+  const FREQ_LABELS = { daily:'Daily', 'twice-daily':'Twice Daily', 'every-other-day':'Every Other Day', '3x-week':'3x Per Week', weekly:'Weekly' };
+
   return (
-    <div style={{background:'#131313',minHeight:'100vh',padding:'28px',maxWidth:'1000px'}}>
-      {toast&&<div style={{position:'fixed',top:'24px',right:'24px',background:'#1a3a2a',border:'1px solid rgba(16,185,129,0.3)',borderRadius:'10px',padding:'12px 20px',color:'#34d399',fontSize:'13px',fontWeight:600,zIndex:100}}>✓ {toast}</div>}
+    <div style={{display:'flex',minHeight:'100vh',background:'#131313'}}>
+      {toast&&<div style={{position:'fixed',top:'24px',right:'24px',background:toastErr?'#3a1a1a':'#1a3a2a',border:'1px solid '+(toastErr?'rgba(239,68,68,0.3)':'rgba(16,185,129,0.3)'),borderRadius:'10px',padding:'12px 20px',color:toastErr?'#fca5a5':'#34d399',fontSize:'13px',fontWeight:600,zIndex:100}}>{toastErr?'⚠️ ':'✓ '}{toast}</div>}
 
-      <div style={{marginBottom:'24px'}}>
-        <h1 style={{fontSize:'22px',fontWeight:800,color:'#fff',margin:'0 0 4px'}}>Instructions & Patient Plans</h1>
-        <p style={{color:'#6b7280',fontSize:'13px',margin:0}}>Manage peptide instructions and generate personalized patient plans</p>
-      </div>
-
-      <div style={{display:'flex',gap:'4px',background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'10px',padding:'4px',marginBottom:'24px',width:'fit-content'}}>
-        {[['instructions','📋 Instructions'],['plan','✉️ Create Patient Plan']].map(([t,label])=>(
-          <button key={t} onClick={()=>setActiveTab(t)} style={{background:activeTab===t?'#0f0f0f':'transparent',color:activeTab===t?'#fff':'#6b7280',border:activeTab===t?'1px solid #2a2a2a':'1px solid transparent',borderRadius:'7px',padding:'8px 18px',fontSize:'13px',fontWeight:activeTab===t?600:400,cursor:'pointer'}}>{label}</button>
+      {/* Peptide sidebar - from purchases */}
+      <div style={{width:'220px',flexShrink:0,background:'#111',borderRight:'1px solid #1a1a1a',padding:'20px 0'}}>
+        <div style={{padding:'0 16px 12px',borderBottom:'1px solid #1a1a1a',marginBottom:'8px'}}>
+          <h2 style={{color:'#fff',fontSize:'15px',fontWeight:700,margin:'0 0 2px'}}>Peptide Instructions</h2>
+          <p style={{color:'#4b5563',fontSize:'11px',margin:0}}>From your purchases</p>
+        </div>
+        {peptides.length === 0 ? (
+          <div style={{padding:'16px',color:'#4b5563',fontSize:'12px',lineHeight:1.5}}>No purchases yet.<br/>Add purchases to see peptides here.</div>
+        ) : peptides.map(name => (
+          <button key={name} onClick={() => setSelected(name)}
+            style={{width:'100%',textAlign:'left',padding:'10px 16px',background:selected===name?'rgba(123,28,46,0.2)':'transparent',color:selected===name?'#fff':'#9ca3af',borderLeft:selected===name?'2px solid #7b1c2e':'2px solid transparent',border:'none',fontSize:'13px',fontWeight:selected===name?600:400,cursor:'pointer',display:'block'}}
+            onMouseOver={e=>{if(selected!==name)e.currentTarget.style.color='#d1d5db';}}
+            onMouseOut={e=>{if(selected!==name)e.currentTarget.style.color='#9ca3af';}}
+          >
+            {name}
+            {instructions[name]?.text && <span style={{marginLeft:'6px',fontSize:'10px',color:'#34d399'}}>✓</span>}
+          </button>
         ))}
       </div>
 
-      {activeTab==='instructions'&&(
-        <div style={{display:'grid',gridTemplateColumns:'220px 1fr',gap:'16px'}}>
-          <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'14px',padding:'8px',height:'fit-content'}}>
-            {PEPTIDES.map(p=>(
-              <button key={p} onClick={()=>{setSelectedPeptide(p);setEditMode(false);}} style={{width:'100%',textAlign:'left',padding:'10px 14px',borderRadius:'8px',border:'none',background:selectedPeptide===p?'rgba(123,28,46,0.25)':'transparent',color:selectedPeptide===p?'#f87171':'#9ca3af',fontSize:'13px',fontWeight:selectedPeptide===p?600:400,cursor:'pointer',borderLeft:selectedPeptide===p?'2px solid #7b1c2e':'2px solid transparent',marginBottom:'1px'}} onMouseOver={e=>{if(selectedPeptide!==p)e.currentTarget.style.background='rgba(255,255,255,0.04)';}} onMouseOut={e=>{if(selectedPeptide!==p)e.currentTarget.style.background='transparent';}}>{p}</button>
-            ))}
+      {/* Main content */}
+      <div style={{flex:1,padding:'28px',overflowY:'auto'}}>
+        {!selected ? (
+          <div style={{textAlign:'center',padding:'80px',color:'#4b5563'}}>
+            <div style={{fontSize:'48px',marginBottom:'16px'}}>💉</div>
+            <p>Select a peptide to view or edit instructions</p>
           </div>
-          <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'14px',padding:'24px'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
-              <h2 style={{color:'#fff',fontSize:'18px',fontWeight:700,margin:0}}>{selectedPeptide}</h2>
-              {!editMode&&<button onClick={startEdit} style={{background:'#242424',border:'1px solid #2a2a2a',borderRadius:'8px',color:'#9ca3af',fontSize:'13px',padding:'7px 16px',cursor:'pointer'}}>✏️ Edit</button>}
-            </div>
-            {editMode?(
-              <><textarea value={editText} onChange={e=>setEditText(e.target.value)} style={{width:'100%',background:'#0f0f0f',border:'1px solid #3a3a3a',borderRadius:'10px',padding:'16px',color:'#d1d5db',fontSize:'13px',lineHeight:1.8,fontFamily:'monospace',minHeight:'360px',outline:'none',resize:'vertical',boxSizing:'border-box'}} />
-                <div style={{display:'flex',gap:'10px',marginTop:'12px'}}>
-                  <button onClick={saveEdit} disabled={saving} style={{flex:1,background:'#7b1c2e',color:'#fff',border:'none',borderRadius:'9px',padding:'11px',fontSize:'13px',fontWeight:700,cursor:'pointer'}}>{saving?'Saving...':'Save Instructions'}</button>
-                  <button onClick={()=>setEditMode(false)} style={{flex:1,background:'#242424',color:'#9ca3af',border:'1px solid #2a2a2a',borderRadius:'9px',padding:'11px',fontSize:'13px',cursor:'pointer'}}>Cancel</button>
-                </div>
-              </>
-            ):(
-              <div style={{color:'#d1d5db',fontSize:'13px',lineHeight:2,whiteSpace:'pre-wrap',background:'#0f0f0f',borderRadius:'10px',padding:'20px',minHeight:'300px'}}>{getCurrentText()}</div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {activeTab==='plan'&&(
-        <div>
-          <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'14px',padding:'24px',marginBottom:'16px'}}>
-            <h3 style={{color:'#fff',fontSize:'16px',fontWeight:700,margin:'0 0 20px'}}>Patient Information</h3>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px',marginBottom:'14px'}}>
-              <div><label style={lbl}>Customer Name *</label><input type='text' placeholder='Jane Smith' value={planCustomer} onChange={e=>setPlanCustomer(e.target.value)} style={inp} /></div>
-              <div><label style={lbl}>Email (for sending)</label><input type='email' placeholder='jane@example.com' value={planCustomerEmail} onChange={e=>setPlanCustomerEmail(e.target.value)} style={inp} /></div>
-              <div style={{gridColumn:'1/-1'}}><label style={lbl}>Goal / Reason</label><input type='text' placeholder='e.g. Weight loss, injury recovery, anti-aging...' value={planGoal} onChange={e=>setPlanGoal(e.target.value)} style={inp} /></div>
-            </div>
-            <h3 style={{color:'#fff',fontSize:'16px',fontWeight:700,margin:'20px 0 14px'}}>Prescribed Peptides</h3>
-            {planPeptides.map((row,i)=>(
-              <div key={i} style={{display:'grid',gridTemplateColumns:'1fr 80px 1fr 100px 1fr 36px',gap:'8px',marginBottom:'10px',alignItems:'end'}}>
-                <div><label style={lbl}>Peptide</label><select value={row.peptide} onChange={e=>updatePlanRow(i,'peptide',e.target.value)} style={{...inp,color:'#fff'}}>{PEPTIDES.map(p=><option key={p} value={p}>{p}</option>)}</select></div>
-                <div><label style={lbl}>Dose (mcg)</label><input type='number' value={row.dose} onChange={e=>updatePlanRow(i,'dose',e.target.value)} style={inp} /></div>
-                <div><label style={lbl}>Frequency</label><input type='text' placeholder='twice daily' value={row.frequency} onChange={e=>updatePlanRow(i,'frequency',e.target.value)} style={inp} /></div>
-                <div><label style={lbl}>Duration</label><input type='text' placeholder='8 weeks' value={row.duration} onChange={e=>updatePlanRow(i,'duration',e.target.value)} style={inp} /></div>
-                <div><label style={lbl}>Notes</label><input type='text' placeholder='Optional' value={row.notes} onChange={e=>updatePlanRow(i,'notes',e.target.value)} style={inp} /></div>
-                <div style={{paddingBottom:'1px'}}><button onClick={()=>removePlanRow(i)} disabled={planPeptides.length===1} style={{width:'36px',height:'38px',background:'transparent',border:'1px solid #2a2a2a',borderRadius:'7px',color:'#6b7280',cursor:'pointer',fontSize:'16px'}}>×</button></div>
+        ) : (
+          <div style={{maxWidth:'800px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'24px'}}>
+              <div>
+                <h1 style={{color:'#fff',fontSize:'22px',fontWeight:800,margin:'0 0 4px'}}>{selected}</h1>
+                <p style={{color:'#6b7280',fontSize:'13px',margin:0}}>Patient instructions &amp; dosage guide</p>
               </div>
-            ))}
-            <button onClick={addPlanRow} style={{background:'#242424',border:'1px solid #2a2a2a',borderRadius:'8px',color:'#9ca3af',fontSize:'13px',padding:'8px 16px',cursor:'pointer',marginBottom:'20px'}}>+ Add Peptide</button>
-            {planError&&<div style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.25)',borderRadius:'8px',padding:'11px',color:'#fca5a5',fontSize:'13px',marginBottom:'12px'}}>⚠️ {planError}</div>}
-            <button onClick={generatePlan} disabled={planLoading} style={{width:'100%',background:planLoading?'#2d0e18':'#7b1c2e',color:planLoading?'#6b2d3e':'#fff',border:'none',borderRadius:'10px',padding:'13px',fontSize:'14px',fontWeight:700,cursor:planLoading?'not-allowed':'pointer'}}>
-              {planLoading?'🤖 Generating plan...':'🤖 Generate Patient Plan'}
-            </button>
-          </div>
+              <button onClick={saveInstructions} disabled={saving} style={{background:saving?'#2d0e18':'#7b1c2e',color:saving?'#5a2030':'#fff',border:'none',borderRadius:'9px',padding:'10px 20px',fontSize:'13px',fontWeight:600,cursor:saving?'not-allowed':'pointer'}}>{saving?'Saving...':'Save Instructions'}</button>
+            </div>
 
-          {planResult&&(
-            <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'14px',padding:'24px'}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
-                <h3 style={{color:'#fff',fontSize:'16px',fontWeight:700,margin:0}}>Generated Plan for {planCustomer}</h3>
-                <div style={{display:'flex',gap:'8px'}}>
-                  <button onClick={()=>{navigator.clipboard?.writeText(planResult);setToast('Copied!');setTimeout(()=>setToast(''),2000);}} style={{background:'#242424',border:'1px solid #2a2a2a',borderRadius:'8px',color:'#9ca3af',fontSize:'12px',padding:'7px 14px',cursor:'pointer'}}>📋 Copy</button>
-                  {planCustomerEmail&&<button onClick={emailPlan} disabled={sending} style={{background:'#7b1c2e',border:'none',borderRadius:'8px',color:'#fff',fontSize:'12px',padding:'7px 14px',cursor:'pointer',fontWeight:600}}>{sending?'Sending...':'📧 Email to Patient'}</button>}
+            {/* Reconstitution settings - stored per peptide */}
+            <div style={{...card,marginBottom:'16px',background:'rgba(59,130,246,0.04)',border:'1px solid rgba(59,130,246,0.12)'}}>
+              <h3 style={{color:'#93c5fd',fontSize:'13px',fontWeight:700,margin:'0 0 14px'}}>⚗️ Default Reconstitution (used for unit calculations)</h3>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+                <div><label style={lbl}>Vial Amount (mg)</label><input type='number' placeholder='e.g. 10' value={currentInstr.vialMg||''} onChange={e=>setField('vialMg',e.target.value)} style={inp} /></div>
+                <div><label style={lbl}>BAC Water (mL)</label><input type='number' step='0.1' placeholder='e.g. 2' value={currentInstr.reconMl||''} onChange={e=>setField('reconMl',e.target.value)} style={inp} /></div>
+              </div>
+              {currentInstr.vialMg && currentInstr.reconMl && (
+                <div style={{marginTop:'10px',fontSize:'12px',color:'#60a5fa'}}>
+                  → Concentration: {((parseFloat(currentInstr.vialMg)*1000)/parseFloat(currentInstr.reconMl)).toFixed(0)} mcg/mL &nbsp;|&nbsp; 1 unit (IU) = {((parseFloat(currentInstr.vialMg)*1000)/(parseFloat(currentInstr.reconMl)*100)).toFixed(1)} mcg
+                </div>
+              )}
+            </div>
+
+            {/* Instructions text */}
+            <div style={{...card,marginBottom:'16px'}}>
+              <label style={lbl}>Patient Instructions</label>
+              <textarea
+                value={currentInstr.text||''}
+                onChange={e=>setField('text',e.target.value)}
+                placeholder={'Enter instructions for '+selected+'...\n\nInclude: storage, reconstitution steps, injection site rotation, timing, etc.'}
+                style={{...inp,minHeight:'180px',resize:'vertical',fontFamily:'inherit',lineHeight:1.6}}
+              />
+            </div>
+
+            {/* Side effects */}
+            <div style={{...card,marginBottom:'16px'}}>
+              <label style={lbl}>Common Side Effects &amp; Notes</label>
+              <textarea value={currentInstr.sideEffects||''} onChange={e=>setField('sideEffects',e.target.value)} placeholder='List common side effects and management tips...' style={{...inp,minHeight:'100px',resize:'vertical',fontFamily:'inherit'}} />
+            </div>
+
+            {/* Storage */}
+            <div style={{...card,marginBottom:'28px'}}>
+              <label style={lbl}>Storage Instructions</label>
+              <input type='text' value={currentInstr.storage||''} onChange={e=>setField('storage',e.target.value)} placeholder='e.g. Refrigerate after reconstitution. Use within 28 days.' style={inp} />
+            </div>
+
+            {/* Patient Plan Generator */}
+            <div style={{...card,background:'rgba(123,28,46,0.06)',border:'1px solid rgba(123,28,46,0.2)'}}>
+              <h3 style={{color:'#f9a8d4',fontSize:'15px',fontWeight:700,margin:'0 0 18px'}}>📋 Generate Patient Plan</h3>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px',marginBottom:'12px'}}>
+                <div><label style={lbl}>Patient Name</label><input type='text' placeholder='e.g. John Smith' value={planPatient} onChange={e=>setPlanPatient(e.target.value)} style={inp} /></div>
+                <div><label style={lbl}>Patient Email</label><input type='email' placeholder='patient@email.com' value={planEmail} onChange={e=>setPlanEmail(e.target.value)} style={inp} /></div>
+                <div>
+                  <label style={lbl}>Peptide</label>
+                  <select value={planPeptide} onChange={e=>setPlanPeptide(e.target.value)} style={{...inp,color:planPeptide?'#fff':'#4b5563'}}>
+                    <option value=''>Select peptide...</option>
+                    {peptides.map(n=><option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+                <div><label style={lbl}>Frequency</label>
+                  <select value={planFreq} onChange={e=>setPlanFreq(e.target.value)} style={{...inp,color:'#fff'}}>
+                    <option value='daily'>Daily</option>
+                    <option value='twice-daily'>Twice Daily</option>
+                    <option value='every-other-day'>Every Other Day</option>
+                    <option value='3x-week'>3x Per Week</option>
+                    <option value='weekly'>Weekly</option>
+                  </select>
                 </div>
               </div>
-              <div style={{background:'#0f0f0f',borderRadius:'10px',padding:'20px',color:'#d1d5db',fontSize:'13px',lineHeight:1.9,whiteSpace:'pre-wrap',maxHeight:'500px',overflowY:'auto'}}>{planResult}</div>
+
+              {/* Reconstitution for this plan */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px',marginBottom:'12px'}}>
+                <div><label style={lbl}>Vial Size (mg)</label><input type='number' placeholder='e.g. 10' value={planVialMg} onChange={e=>setPlanVialMg(e.target.value)} style={inp} /></div>
+                <div><label style={lbl}>BAC Water (mL)</label><input type='number' step='0.1' placeholder='e.g. 2' value={planReconMl} onChange={e=>setPlanReconMl(e.target.value)} style={inp} /></div>
+              </div>
+
+              {/* Dose in UNITS */}
+              <div style={{marginBottom:'12px'}}>
+                <label style={lbl}>Dose — Units to Draw (IU on insulin syringe)</label>
+                <div style={{position:'relative'}}>
+                  <input type='number' step='0.5' placeholder='e.g. 10' value={planDoseUnits} onChange={e=>setPlanDoseUnits(e.target.value)} style={{...inp,paddingRight:'80px'}} />
+                  <span style={{position:'absolute',right:'12px',top:'50%',transform:'translateY(-50%)',color:'#6b7280',fontSize:'12px',pointerEvents:'none'}}>units (IU)</span>
+                </div>
+                {planMcg && planDoseUnits && (
+                  <div style={{marginTop:'6px',fontSize:'12px',color:'#a78bfa'}}>
+                    → {planDoseUnits} units = <strong style={{color:'#c084fc'}}>{planMcg} mcg</strong>
+                    {planVialMg && planReconMl && <span style={{color:'#6b7280'}}> &nbsp;(based on {planVialMg}mg/{planReconMl}mL)</span>}
+                  </div>
+                )}
+              </div>
+
+              <div style={{marginBottom:'16px'}}><label style={lbl}>Additional Notes</label><textarea value={planNotes} onChange={e=>setPlanNotes(e.target.value)} placeholder='Any specific instructions for this patient...' style={{...inp,minHeight:'70px',resize:'vertical',fontFamily:'inherit'}} /></div>
+
+              {/* Plan preview */}
+              {planPeptide && planDoseUnits && planVialMg && planReconMl && (
+                <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid #2a2a2a',borderRadius:'10px',padding:'14px',marginBottom:'14px',fontSize:'13px',color:'#9ca3af',lineHeight:1.8}}>
+                  <div style={{color:'#fff',fontWeight:700,marginBottom:'8px'}}>Plan Preview</div>
+                  <div>💊 <strong style={{color:'#d1d5db'}}>{planPeptide}</strong></div>
+                  <div>💉 Draw <strong style={{color:'#fbbf24'}}>{planDoseUnits} units</strong> on insulin syringe {planMcg&&<span>({planMcg} mcg)</span>}</div>
+                  <div>📅 Frequency: {FREQ_LABELS[planFreq]||planFreq}</div>
+                  <div>⚗️ Reconstituted: {planVialMg}mg in {planReconMl}mL BAC water</div>
+                  {planNotes&&<div>📝 {planNotes}</div>}
+                </div>
+              )}
+
+              <button onClick={sendPlan} disabled={sending||!planPatient||!planEmail||!planPeptide||!planDoseUnits} style={{background:!sending&&planPatient&&planEmail&&planPeptide&&planDoseUnits?'#7b1c2e':'#2d0e18',color:!sending&&planPatient&&planEmail&&planPeptide&&planDoseUnits?'#fff':'#5a2030',border:'none',borderRadius:'10px',padding:'13px 24px',fontSize:'14px',fontWeight:700,cursor:!sending&&planPatient&&planEmail&&planPeptide&&planDoseUnits?'pointer':'not-allowed'}}>{sending?'Sending...':'📧 Send Plan to Patient'}</button>
+              {planResult&&<div style={{marginTop:'10px',fontSize:'13px',color:planResult.startsWith('✓')?'#34d399':'#f87171',fontWeight:600}}>{planResult}</div>}
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
