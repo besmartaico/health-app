@@ -75,7 +75,7 @@ export default function InventoryPage() {
   const lowStock = items.filter(i => i.reorderLevel && parseFloat(i.quantity) <= parseFloat(i.reorderLevel));
 
   return (
-    <div style={{background:'#131313',minHeight:'100vh',padding:'28px',maxWidth:'1100px'}}>
+    <div style={{background:'#131313',minHeight:'100vh',padding:'20px',maxWidth:'1100px'}} className='page-pad'>
       {toast&&<div style={{position:'fixed',top:'24px',right:'24px',background:toastErr?'#3a1a1a':'#1a3a2a',border:'1px solid '+(toastErr?'rgba(239,68,68,0.3)':'rgba(16,185,129,0.3)'),borderRadius:'10px',padding:'12px 20px',color:toastErr?'#fca5a5':'#34d399',fontSize:'13px',fontWeight:600,zIndex:100}}>{toastErr?'⚠️ ':'✓ '}{toast}</div>}
 
       {/* Header */}
@@ -118,7 +118,7 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'14px',overflow:'hidden'}}>
+      <div className='tbl-wrap' style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'14px'}}>
         {loading?<div style={{padding:'48px',textAlign:'center',color:'#4b5563'}}>Loading...</div>
         :filtered.length===0?(
           <div style={{padding:'60px',textAlign:'center'}}>
@@ -129,7 +129,7 @@ export default function InventoryPage() {
             </div>
           </div>
         ):(
-          <table style={{width:'100%',borderCollapse:'collapse'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',minWidth:'600px'}}>
             <thead><tr>{['Type','Name','Quantity','Unit','Reorder At','Notes',''].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
             <tbody>
               {filtered.map((item, i) => {

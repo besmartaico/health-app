@@ -71,7 +71,7 @@ export default function ProfitabilityPage() {
   const topProducts = Object.entries(productMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
 
   return (
-    <div style={{background:'#131313',minHeight:'100vh',padding:'28px',maxWidth:'1000px'}}>
+    <div className='page-pad' style={{background:'#131313',minHeight:'100vh',padding:'20px',maxWidth:'1000px'}}>
       <div style={{marginBottom:'28px'}}>
         <h1 style={{fontSize:'22px',fontWeight:800,color:'#fff',margin:'0 0 4px'}}>Profitability</h1>
         <p style={{color:'#6b7280',fontSize:'13px',margin:0}}>Track costs, revenue, and profit/loss</p>
@@ -112,12 +112,12 @@ export default function ProfitabilityPage() {
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'20px',marginBottom:'28px'}}>
 
         {/* Monthly breakdown */}
-        <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'14px',overflow:'hidden'}}>
+        <div className='tbl-wrap' style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'14px'}}>
           <div style={{padding:'16px 20px',borderBottom:'1px solid #1f1f1f'}}>
             <h3 style={{color:'#fff',fontSize:'14px',fontWeight:700,margin:0}}>Monthly Breakdown</h3>
           </div>
           {months.length===0?<div style={{padding:'32px',textAlign:'center',color:'#4b5563',fontSize:'13px'}}>No data yet</div>:
-          <table style={{width:'100%',borderCollapse:'collapse'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',minWidth:'500px'}}>
             <thead><tr>
               {['Month','Revenue','Cost','Profit'].map(h=><th key={h} style={{textAlign:h==='Month'?'left':'right',padding:'10px 16px',fontSize:'11px',fontWeight:700,color:'#4b5563',textTransform:'uppercase',letterSpacing:'0.07em',background:'#161616',borderBottom:'1px solid #1f1f1f'}}>{h}</th>)}
             </tr></thead>
@@ -137,7 +137,7 @@ export default function ProfitabilityPage() {
         </div>
 
         {/* Top products by revenue */}
-        <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'14px',overflow:'hidden'}}>
+        <div className='tbl-wrap' style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'14px'}}>
           <div style={{padding:'16px 20px',borderBottom:'1px solid #1f1f1f'}}>
             <h3 style={{color:'#fff',fontSize:'14px',fontWeight:700,margin:0}}>Revenue by Product</h3>
           </div>
@@ -154,11 +154,11 @@ export default function ProfitabilityPage() {
       </div>
 
       {/* Recent sales */}
-      <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'14px',overflow:'hidden'}}>
+      <div className='tbl-wrap' style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'14px'}}>
         <div style={{padding:'16px 20px',borderBottom:'1px solid #1f1f1f'}}>
           <h3 style={{color:'#fff',fontSize:'14px',fontWeight:700,margin:0}}>Recent Sales</h3>
         </div>
-        <table style={{width:'100%',borderCollapse:'collapse'}}>
+        <table style={{width:'100%',borderCollapse:'collapse',minWidth:'500px'}}>
           <thead><tr>
             {['Date','Customer','Total'].map(h=><th key={h} style={{textAlign:h==='Total'?'right':'left',padding:'10px 16px',fontSize:'11px',fontWeight:700,color:'#4b5563',textTransform:'uppercase',letterSpacing:'0.07em',background:'#161616',borderBottom:'1px solid #1f1f1f'}}>{h}</th>)}
           </tr></thead>
