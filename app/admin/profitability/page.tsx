@@ -1,102 +1,180 @@
 // @ts-nocheck
 'use client';
-import React, { useState, useEffect, CSSProperties } from 'react';
+import { useState, useEffect } from 'react';
 
-const th = { textAlign: 'left', padding: '10px 16px', fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid #2a2a2a', background: '#191919' };
-const td = { padding: '12px 16px', fontSize: '13px', color: '#d1d5db', borderBottom: '1px solid #1a1a1a' };
+const fmt = (n) => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits:2 });
+const pct = (a, b) => b === 0 ? '0%' : (a/b*100).toFixed(1)+'%';
 
-export default function ProfitPage() {
-  const [purchases, setPurchases] = useState([]);
+export default function ProfitabilityPage() {
   const [sales, setSales] = useState([]);
+  const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([fetch('/api/purchases').then(r => r.json()), fetch('/api/sales').then(r => r.json())])
-      .then(([p, s]) => { setPurchases(p.purchases || []); setSales(s.sales || []); setLoading(false); });
+    Promise.all([
+      fetch('/api/sales').then(r=>r.json()),
+      fetch('/api/purchases').then(r=>r.json()),
+    ]).then(([s, p]) => {
+      setSales(s.sales || []);
+      setPurchases(p.purchases || []);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
-  const totalCost = purchases.reduce((s, i) => s + parseFloat(i.totalCost || '0'), 0);
-  const totalRev = sales.reduce((s, i) => s + parseFloat(i.totalRevenue || '0'), 0);
-  const profit = totalRev - totalCost;
-  const margin = totalRev > 0 ? (profit / totalRev) * 100 : 0;
-  const inBlack = profit >= 0;
+  // Revenue: sum s.total for every sale
+  const totalRevenue = sales.reduce((sum, s) => sum + (parseFloat(s.total) || 0), 0);
 
-  const peptides = [...new Set([...purchases.map(p => p.peptide), ...sales.map(s => s.peptide)].filter(Boolean))];
-  const byPeptide = peptides.map(name => {
-    const cost = purchases.filter(p => p.peptide === name).reduce((s, p) => s + parseFloat(p.totalCost || '0'), 0);
-    const rev = sales.filter(s => s.peptide === name).reduce((s, p) => s + parseFloat(p.totalRevenue || '0'), 0);
-    return { name, cost, rev, profit: rev - cost };
-  }).sort((a, b) => b.profit - a.profit);
+  // Cost: sum p.totalCost for every purchase
+  const totalCost = purchases.reduce((sum, p) => sum + (parseFloat(p.totalCost) || 0), 0);
 
-  if (loading) return <div style={{ padding: '40px', color: '#6b7280' }}>Loading...</div>;
+  const grossProfit = totalRevenue - totalCost;
+  const margin = totalRevenue > 0 ? (grossProfit / totalRevenue * 100).toFixed(1) : '0.0';
+  const profitable = grossProfit >= 0;
 
-  const bannerBg = inBlack ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)';
-  const bannerBorder = inBlack ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)';
-  const profitColor = inBlack ? '#10b981' : '#ef4444';
-  const accentColor = inBlack ? '#6ee7b7' : '#fca5a5';
+  const stat = (label, value, color, sub) => (
+    <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'12px',padding:'20px 24px'}}>
+      <div style={{color:'#6b7280',fontSize:'11px',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:'8px'}}>{label}</div>
+      <div style={{color:color||'#fff',fontSize:'28px',fontWeight:800,letterSpacing:'-0.5px'}}>{value}</div>
+      {sub&&<div style={{color:'#4b5563',fontSize:'12px',marginTop:'4px'}}>{sub}</div>}
+    </div>
+  );
+
+  // Monthly breakdown
+  const monthlyMap = {};
+  for (const s of sales) {
+    const mo = (s.date||'').substring(0,7);
+    if (!mo) continue;
+    if (!monthlyMap[mo]) monthlyMap[mo] = { revenue:0, sales:0 };
+    monthlyMap[mo].revenue += parseFloat(s.total)||0;
+    monthlyMap[mo].sales++;
+  }
+  for (const p of purchases) {
+    const mo = (p.date||'').substring(0,7);
+    if (!mo) continue;
+    if (!monthlyMap[mo]) monthlyMap[mo] = { revenue:0, sales:0 };
+    monthlyMap[mo].cost = (monthlyMap[mo].cost||0) + (parseFloat(p.totalCost)||0);
+  }
+  const months = Object.keys(monthlyMap).sort().reverse();
+
+  // Per-product revenue
+  const productMap = {};
+  for (const s of sales) {
+    try {
+      const lines = JSON.parse(s.lines||'[]');
+      for (const l of lines) {
+        if (!l.product || !parseFloat(l.total)) continue;
+        if (!productMap[l.product]) productMap[l.product] = 0;
+        productMap[l.product] += parseFloat(l.total)||0;
+      }
+    } catch {}
+  }
+  const topProducts = Object.entries(productMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
 
   return (
-    <div style={{ background: '#131313', color: '#fff', minHeight: '100vh', padding: '28px', maxWidth: '1100px' }}>
-      <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', margin: '0 0 4px' }}>Profitability</h1>
-      <p style={{ color: '#6b7280', fontSize: '13px', margin: '0 0 24px' }}>Track costs, revenue, and profit/loss</p>
+    <div style={{background:'#131313',minHeight:'100vh',padding:'28px',maxWidth:'1000px'}}>
+      <div style={{marginBottom:'28px'}}>
+        <h1 style={{fontSize:'22px',fontWeight:800,color:'#fff',margin:'0 0 4px'}}>Profitability</h1>
+        <p style={{color:'#6b7280',fontSize:'13px',margin:0}}>Track costs, revenue, and profit/loss</p>
+      </div>
 
-      <div style={{ background: bannerBg, border: '1px solid ' + bannerBorder, borderRadius: '16px', padding: '28px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {loading ? <div style={{color:'#4b5563',padding:'60px',textAlign:'center'}}>Loading...</div> : (<>
+
+      {/* Summary banner */}
+      <div style={{background:profitable?'rgba(16,185,129,0.06)':'rgba(239,68,68,0.06)',border:'1px solid '+(profitable?'rgba(16,185,129,0.2)':'rgba(239,68,68,0.2)'),borderRadius:'16px',padding:'24px 28px',marginBottom:'24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'12px'}}>
         <div>
-          <div style={{ fontSize: '12px', color: accentColor, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>{inBlack ? '✅ IN THE BLACK' : '🔴 IN THE RED'}</div>
-          <div style={{ fontSize: '48px', fontWeight: 900, color: profitColor, letterSpacing: '-2px' }}>{inBlack ? '+' : ''}${profit.toFixed(2)}</div>
-          <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '6px' }}>Net Profit / Loss</div>
+          <div style={{color:'#6b7280',fontSize:'12px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:'6px'}}>Overall P&amp;L</div>
+          <div style={{color:profitable?'#34d399':'#f87171',fontSize:'36px',fontWeight:800,letterSpacing:'-1px'}}>{fmt(grossProfit)}</div>
+          <div style={{color:'#6b7280',fontSize:'13px',marginTop:'4px'}}>{profitable?'▲ Profitable':'▼ At a loss'} &nbsp;·&nbsp; {margin}% margin</div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>Profit Margin</div>
-          <div style={{ fontSize: '32px', fontWeight: 800, color: profitColor }}>{margin.toFixed(1)}%</div>
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px', marginBottom: '28px' }}>
-        {([['Total Spent', '$' + totalCost.toFixed(2), '#c0394f'], ['Total Revenue', '$' + totalRev.toFixed(2), '#10b981'], ['Net Profit', (inBlack ? '+' : '') + '$' + profit.toFixed(2), profitColor]]).map(([l, v, c]) => (
-          <div key={l} style={{ background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: '10px', padding: '18px' }}>
-            <div style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>{l}</div>
-            <div style={{ fontSize: '26px', fontWeight: 800, color: c }}>{v}</div>
+        <div style={{display:'flex',gap:'12px',flexWrap:'wrap'}}>
+          <div style={{textAlign:'center'}}>
+            <div style={{color:'#6b7280',fontSize:'11px',fontWeight:600,textTransform:'uppercase',marginBottom:'4px'}}>Revenue</div>
+            <div style={{color:'#34d399',fontSize:'22px',fontWeight:700}}>{fmt(totalRevenue)}</div>
+            <div style={{color:'#4b5563',fontSize:'11px'}}>{sales.length} sales</div>
           </div>
-        ))}
+          <div style={{width:'1px',background:'#2a2a2a'}}/>
+          <div style={{textAlign:'center'}}>
+            <div style={{color:'#6b7280',fontSize:'11px',fontWeight:600,textTransform:'uppercase',marginBottom:'4px'}}>Cost</div>
+            <div style={{color:'#f87171',fontSize:'22px',fontWeight:700}}>{fmt(totalCost)}</div>
+            <div style={{color:'#4b5563',fontSize:'11px'}}>{purchases.length} purchases</div>
+          </div>
+        </div>
       </div>
 
-      <h2 style={{ fontSize: '12px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>By Peptide</h2>
-      <div style={{ background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: '12px', overflow: 'hidden' }}>
-        {byPeptide.length === 0 ? (
-          <div style={{ padding: '32px', textAlign: 'center', color: '#4b5563' }}>No data yet. Add purchases and sales to see profitability breakdown.</div>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr>{['Peptide', 'Total Cost', 'Total Revenue', 'Profit / Loss', 'Margin', 'Status'].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+      {/* Stats grid */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:'12px',marginBottom:'28px'}}>
+        {stat('Total Revenue', fmt(totalRevenue), '#34d399', sales.length+' sales')}
+        {stat('Total Costs', fmt(totalCost), '#f87171', purchases.length+' purchases')}
+        {stat('Gross Profit', fmt(grossProfit), profitable?'#34d399':'#f87171')}
+        {stat('Margin', margin+'%', profitable?'#34d399':'#f87171', 'gross margin')}
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'20px',marginBottom:'28px'}}>
+
+        {/* Monthly breakdown */}
+        <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'14px',overflow:'hidden'}}>
+          <div style={{padding:'16px 20px',borderBottom:'1px solid #1f1f1f'}}>
+            <h3 style={{color:'#fff',fontSize:'14px',fontWeight:700,margin:0}}>Monthly Breakdown</h3>
+          </div>
+          {months.length===0?<div style={{padding:'32px',textAlign:'center',color:'#4b5563',fontSize:'13px'}}>No data yet</div>:
+          <table style={{width:'100%',borderCollapse:'collapse'}}>
+            <thead><tr>
+              {['Month','Revenue','Cost','Profit'].map(h=><th key={h} style={{textAlign:h==='Month'?'left':'right',padding:'10px 16px',fontSize:'11px',fontWeight:700,color:'#4b5563',textTransform:'uppercase',letterSpacing:'0.07em',background:'#161616',borderBottom:'1px solid #1f1f1f'}}>{h}</th>)}
+            </tr></thead>
             <tbody>
-              {byPeptide.map(p => {
-                const pb = p.profit >= 0;
-                const pm = p.rev > 0 ? (p.profit / p.rev) * 100 : 0;
-                const pc = pb ? '#10b981' : '#ef4444';
-                return (
-                  <tr key={p.name} onMouseOver={e => e.currentTarget.style.background = '#222'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-                    <td style={{ ...td, color: '#fff', fontWeight: 600 }}>{p.name}</td>
-                    <td style={{ ...td, color: '#c0394f' }}>${p.cost.toFixed(2)}</td>
-                    <td style={{ ...td, color: '#10b981' }}>${p.rev.toFixed(2)}</td>
-                    <td style={{ ...td, color: pc, fontWeight: 700 }}>{pb ? '+' : ''}${p.profit.toFixed(2)}</td>
-                    <td style={td}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: '60px', height: '6px', background: '#2a2a2a', borderRadius: '3px', overflow: 'hidden' }}>
-                          <div style={{ width: Math.min(100, Math.abs(pm)) + '%', height: '100%', background: pc, borderRadius: '3px' }} />
-                        </div>
-                        <span style={{ fontSize: '12px', color: '#9ca3af' }}>{pm.toFixed(1)}%</span>
-                      </div>
-                    </td>
-                    <td style={td}>
-                      <span style={{ background: pb ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: pb ? '#6ee7b7' : '#fca5a5', border: '1px solid ' + (pb ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'), borderRadius: '20px', padding: '3px 10px', fontSize: '11px', fontWeight: 600 }}>{pb ? '✓ Profitable' : '✗ At a loss'}</span>
-                    </td>
-                  </tr>
-                );
+              {months.map(mo => {
+                const d = monthlyMap[mo];
+                const rev = d.revenue||0, cost = d.cost||0, profit = rev-cost;
+                return (<tr key={mo} onMouseOver={e=>e.currentTarget.style.background='#1f1f1f'} onMouseOut={e=>e.currentTarget.style.background='transparent'}>
+                  <td style={{padding:'10px 16px',color:'#9ca3af',fontSize:'13px',borderBottom:'1px solid #1a1a1a'}}>{mo}</td>
+                  <td style={{padding:'10px 16px',color:'#34d399',fontSize:'13px',fontWeight:600,textAlign:'right',borderBottom:'1px solid #1a1a1a'}}>{fmt(rev)}</td>
+                  <td style={{padding:'10px 16px',color:'#f87171',fontSize:'13px',textAlign:'right',borderBottom:'1px solid #1a1a1a'}}>{fmt(cost)}</td>
+                  <td style={{padding:'10px 16px',color:profit>=0?'#34d399':'#f87171',fontSize:'13px',fontWeight:700,textAlign:'right',borderBottom:'1px solid #1a1a1a'}}>{fmt(profit)}</td>
+                </tr>);
               })}
             </tbody>
-          </table>
-        )}
+          </table>}
+        </div>
+
+        {/* Top products by revenue */}
+        <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'14px',overflow:'hidden'}}>
+          <div style={{padding:'16px 20px',borderBottom:'1px solid #1f1f1f'}}>
+            <h3 style={{color:'#fff',fontSize:'14px',fontWeight:700,margin:0}}>Revenue by Product</h3>
+          </div>
+          {topProducts.length===0?<div style={{padding:'32px',textAlign:'center',color:'#4b5563',fontSize:'13px'}}>No sales data yet</div>:
+          <div style={{padding:'12px 0'}}>
+            {topProducts.map(([name,rev])=>(
+              <div key={name} style={{padding:'10px 20px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <div style={{color:'#d1d5db',fontSize:'13px',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginRight:'12px'}}>{name}</div>
+                <div style={{color:'#34d399',fontSize:'13px',fontWeight:700,whiteSpace:'nowrap'}}>{fmt(rev)}</div>
+              </div>
+            ))}
+          </div>}
+        </div>
       </div>
+
+      {/* Recent sales */}
+      <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'14px',overflow:'hidden'}}>
+        <div style={{padding:'16px 20px',borderBottom:'1px solid #1f1f1f'}}>
+          <h3 style={{color:'#fff',fontSize:'14px',fontWeight:700,margin:0}}>Recent Sales</h3>
+        </div>
+        <table style={{width:'100%',borderCollapse:'collapse'}}>
+          <thead><tr>
+            {['Date','Customer','Total'].map(h=><th key={h} style={{textAlign:h==='Total'?'right':'left',padding:'10px 16px',fontSize:'11px',fontWeight:700,color:'#4b5563',textTransform:'uppercase',letterSpacing:'0.07em',background:'#161616',borderBottom:'1px solid #1f1f1f'}}>{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {sales.slice().reverse().slice(0,10).map((s,i)=>(
+              <tr key={i} onMouseOver={e=>e.currentTarget.style.background='#1f1f1f'} onMouseOut={e=>e.currentTarget.style.background='transparent'}>
+                <td style={{padding:'10px 16px',color:'#6b7280',fontSize:'13px',borderBottom:'1px solid #1a1a1a'}}>{s.date||'—'}</td>
+                <td style={{padding:'10px 16px',color:'#d1d5db',fontSize:'13px',fontWeight:500,borderBottom:'1px solid #1a1a1a'}}>{s.customer||'—'}</td>
+                <td style={{padding:'10px 16px',color:'#34d399',fontSize:'13px',fontWeight:700,textAlign:'right',borderBottom:'1px solid #1a1a1a'}}>{s.total?fmt(parseFloat(s.total)):'—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      </>)}
     </div>
   );
 }
