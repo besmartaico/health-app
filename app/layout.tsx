@@ -2,6 +2,13 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 
+export const metadata = {
+  title: 'BeSmart Health',
+  manifest: '/manifest.json',
+  themeColor: '#7b1c2e',
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'BeSmart' },
+};
+
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
