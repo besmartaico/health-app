@@ -21,6 +21,8 @@ export default function SalesPage() {
   const [toastErr, setToastErr] = useState(false);
   const [search, setSearch] = useState('');
   const [showReferral, setShowReferral] = useState(false);
+  const [newCustMode, setNewCustMode] = useState(false);
+  const [newCustName, setNewCustName] = useState('');
 
   useEffect(() => {
     load();
@@ -41,19 +43,29 @@ export default function SalesPage() {
   const lineTotal = (l) => (parseFloat(l.qty)||0)*(parseFloat(l.price)||0);
   const formTotal = form.lines.reduce((s,l)=>s+lineTotal(l),0);
 
-  const openAdd = () => { setForm({...EMPTY,date:new Date().toISOString().split('T')[0],lines:[newLine()]}); setEditIdx(null); setShowReferral(false); setShowForm(true); };
+  const openAdd = () => { setForm({...EMPTY,date:new Date().toISOString().split('T')[0],lines:[newLine()]}); setEditIdx(null); setShowReferral(false); setNewCustMode(false); setNewCustName(''); setShowForm(true); };
   const openEdit = (sale) => {
     let lines; try { lines=JSON.parse(sale.lines||'[]'); } catch { lines=[]; }
     if(!lines.length) lines=[newLine()]; else lines=lines.map(l=>({...l,id:Math.random().toString(36).slice(2)}));
     setForm({date:sale.date||'',customer:sale.customer||'',notes:sale.notes||'',referredBy:sale.referredBy||'',lines});
-    setShowReferral(!!sale.referredBy); setEditIdx(sale.id); setShowForm(true);
+    setShowReferral(!!sale.referredBy); setNewCustMode(false); setNewCustName(''); setEditIdx(sale.id); setShowForm(true);
   };
 
   const save = async () => {
     if(!form.lines.some(l=>l.product)) return;
+    // Resolve final customer name
+    const finalCustomer = newCustMode ? newCustName.trim() : form.customer;
+    if (!finalCustomer) return;
     setSaving(true);
+    // If new customer, add to CRM first
+    if (newCustMode && newCustName.trim()) {
+      try {
+        await fetch('/api/crm', { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ action:'add', customer:{ name:newCustName.trim(), email:'', phone:'', status:'Active', source:'Sales', notes:'', tags:'', referralCredits:'0', addedDate:new Date().toISOString().split('T')[0] } }) });
+      } catch(e) { console.error('CRM add failed:', e); }
+    }
     const linesClean = form.lines.filter(l=>l.product).map(l=>({product:l.product,qty:l.qty,price:l.price,total:lineTotal(l).toFixed(2)}));
-    const payload = {date:form.date,customer:form.customer,lines:JSON.stringify(linesClean),total:formTotal.toFixed(2),notes:form.notes,referredBy:form.referredBy,referralCredit:form.referredBy?String(CREDIT):'0'};
+    const payload = {date:form.date,customer:finalCustomer,lines:JSON.stringify(linesClean),total:formTotal.toFixed(2),notes:form.notes,referredBy:form.referredBy,referralCredit:form.referredBy?String(CREDIT):'0'};
     try {
       const res = await fetch('/api/sales',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:editIdx!==null?'update':'add',sale:payload,index:editIdx})});
       const d = await res.json();
@@ -152,8 +164,38 @@ export default function SalesPage() {
               <div><label style={lbl}>Date</label><input type='date' value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} style={{...inp,colorScheme:'dark'}} /></div>
               <div>
                 <label style={lbl}>Customer</label>
-                {custOpts.length>0?(<select value={form.customer} onChange={e=>setForm(f=>({...f,customer:e.target.value}))} style={{...inp,color:form.customer?'#fff':'#4b5563'}}><option value=''>Select customer...</option>{custOpts.map(n=><option key={n}>{n}</option>)}</select>)
-                :(<input type='text' placeholder='Customer name' value={form.customer} onChange={e=>setForm(f=>({...f,customer:e.target.value}))} style={inp} />)}
+                {custOpts.length>0?(
+                  <>
+                    <select
+                      value={newCustMode ? '__new__' : form.customer}
+                      onChange={e => {
+                        if (e.target.value === '__new__') {
+                          setNewCustMode(true);
+                          setForm(f=>({...f,customer:''}));
+                        } else {
+                          setNewCustMode(false);
+                          setNewCustName('');
+                          setForm(f=>({...f,customer:e.target.value}));
+                        }
+                      }}
+                      style={{...inp,color:(newCustMode||form.customer)?'#fff':'#4b5563'}}
+                    >
+                      <option value=''>Select customer...</option>
+                      {custOpts.map(n=><option key={n} value={n}>{n}</option>)}
+                      <option value='__new__'>＋ Add New Customer</option>
+                    </select>
+                    {newCustMode&&(
+                      <input
+                        type='text'
+                        placeholder='Enter new customer name...'
+                        value={newCustName}
+                        onChange={e=>setNewCustName(e.target.value)}
+                        style={{...inp,marginTop:'8px',borderColor:'rgba(16,185,129,0.4)',background:'rgba(16,185,129,0.05)'}}
+                        autoFocus
+                      />
+                    )}
+                  </>
+                ):(<input type='text' placeholder='Customer name' value={form.customer} onChange={e=>setForm(f=>({...f,customer:e.target.value}))} style={inp} />)}
               </div>
             </div>
             {/* Line items */}
@@ -187,7 +229,7 @@ export default function SalesPage() {
             )}
             <div style={{marginBottom:'16px'}}><label style={lbl}>Notes</label><input type='text' placeholder='Optional' value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} style={inp} /></div>
             <div style={{display:'flex',gap:'10px'}}>
-              <button onClick={save} disabled={saving||!form.lines.some(l=>l.product)} style={{flex:1,background:form.lines.some(l=>l.product)&&!saving?'#7b1c2e':'#2d0e18',color:form.lines.some(l=>l.product)&&!saving?'#fff':'#5a2030',border:'none',borderRadius:'10px',padding:'14px',fontSize:'15px',fontWeight:700,cursor:form.lines.some(l=>l.product)&&!saving?'pointer':'not-allowed'}}>{saving?'Saving...':editIdx!==null?'Save Changes':'Record Sale'}</button>
+              <button onClick={save} disabled={saving||!form.lines.some(l=>l.product)||(newCustMode&&!newCustName.trim())} style={{flex:1,background:form.lines.some(l=>l.product)&&!saving?'#7b1c2e':'#2d0e18',color:form.lines.some(l=>l.product)&&!saving?'#fff':'#5a2030',border:'none',borderRadius:'10px',padding:'14px',fontSize:'15px',fontWeight:700,cursor:form.lines.some(l=>l.product)&&!saving?'pointer':'not-allowed'}}>{saving?'Saving...':editIdx!==null?'Save Changes':'Record Sale'}</button>
               <button onClick={()=>{setShowForm(false);setForm({...EMPTY,lines:[newLine()]});setEditIdx(null);}} style={{flex:1,background:'#242424',color:'#9ca3af',border:'1px solid #2a2a2a',borderRadius:'10px',padding:'14px',fontSize:'15px',cursor:'pointer'}}>Cancel</button>
             </div>
           </div>
