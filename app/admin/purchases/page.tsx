@@ -30,6 +30,9 @@ export default function PurchasesPage() {
 
   const showT = (msg, err) => { setToast(msg); setToastErr(!!err); setTimeout(() => setToast(''), 3500); };
 
+  // Unique sorted vendor names from past purchases
+  const pastVendors = [...new Set(purchases.map(p => p.vendor).filter(Boolean))].sort();
+
   // Unique sorted item names from past purchases
   const pastItems = [...new Set(purchases.map(p => p.item).filter(Boolean))].sort();
 
@@ -134,7 +137,13 @@ export default function PurchasesPage() {
             <h2 style={{color:'#fff',fontSize:'20px',fontWeight:800,margin:'0 0 24px'}}>{editIdx!==null?'Edit Purchase':'Add Purchase'}</h2>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px',marginBottom:'12px'}}>
               <div><label style={lbl}>Date</label><input type='date' value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))} style={{...inp,colorScheme:'dark'}} /></div>
-              <div><label style={lbl}>Vendor</label><input type='text' placeholder='e.g. Distributor' value={form.vendor} onChange={e=>setForm(p=>({...p,vendor:e.target.value}))} style={inp} /></div>
+              <div>
+                <label style={lbl}>Vendor</label>
+                <input type='text' placeholder='Select or type vendor...' value={form.vendor} onChange={e=>setForm(p=>({...p,vendor:e.target.value}))} style={inp} list='vendor-list' autoComplete='off' />
+                <datalist id='vendor-list'>
+                  {pastVendors.map(v=><option key={v} value={v} />)}
+                </datalist>
+              </div>
 
               {/* Item field — dropdown of past items OR free-text */}
               <div style={{gridColumn:'1/-1'}}>
