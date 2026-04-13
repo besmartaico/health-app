@@ -5,7 +5,19 @@ import { useState, useEffect } from 'react';
 const inp = { width:'100%', background:'#0f0f0f', border:'1px solid #2a2a2a', borderRadius:'8px', padding:'11px 13px', color:'#fff', fontSize:'16px', outline:'none', boxSizing:'border-box' };
 const lbl = { display:'block', color:'#6b7280', fontSize:'11px', fontWeight:600, marginBottom:'5px', textTransform:'uppercase', letterSpacing:'0.07em' };
 const newLine = () => ({ id: Math.random().toString(36).slice(2), product:'', qty:'1', price:'' });
-const EMPTY = { date:'', customer:'', notes:'', referredBy:'', lines:[newLine()] };
+const EMPTY = { date:'', customer:'', notes:'', referredBy:'', lines:[newLine()], nextRefillDate:'' };
+
+// Calculate next refill date from start date + vials * doses/vial * frequency
+function calcNextRefill(startDate, vials, dosesPerVial, dosesPerWeek) {
+  if (!startDate || !vials || !dosesPerVial || !dosesPerWeek) return '';
+  const totalDoses = parseFloat(vials) * parseFloat(dosesPerVial);
+  const weeks = totalDoses / parseFloat(dosesPerWeek);
+  const d = new Date(startDate);
+  d.setDate(d.getDate() + Math.floor(weeks * 7));
+  return d.toISOString().split('T')[0];
+}
+
+const FREQ_DOSES = { daily:7, 'twice-daily':14, 'every-other-day':3.5, '3x-week':3, weekly:1 };
 const CREDIT = 20;
 
 export default function SalesPage() {
@@ -21,6 +33,10 @@ export default function SalesPage() {
   const [toastErr, setToastErr] = useState(false);
   const [search, setSearch] = useState('');
   const [showReferral, setShowReferral] = useState(false);
+  const [showDosePlan, setShowDosePlan] = useState(false);
+  const [doseVials, setDoseVials] = useState('1');
+  const [doseDosesPerVial, setDoseDosesPerVial] = useState('');
+  const [doseFreq, setDoseFreq] = useState('weekly');
   const [newCustMode, setNewCustMode] = useState(false);
   const [newCustName, setNewCustName] = useState('');
 
@@ -43,7 +59,7 @@ export default function SalesPage() {
   const lineTotal = (l) => (parseFloat(l.qty)||0)*(parseFloat(l.price)||0);
   const formTotal = form.lines.reduce((s,l)=>s+lineTotal(l),0);
 
-  const openAdd = () => { setForm({...EMPTY,date:new Date().toISOString().split('T')[0],lines:[newLine()]}); setEditIdx(null); setShowReferral(false); setNewCustMode(false); setNewCustName(''); setShowForm(true); };
+  const openAdd = () => { setForm({...EMPTY,date:new Date().toISOString().split('T')[0],lines:[newLine()]}); setEditIdx(null); setShowReferral(false); setNewCustMode(false); setNewCustName(''); setShowDosePlan(false); setDoseVials('1'); setDoseDosesPerVial(''); setShowForm(true); };
   const openEdit = (sale) => {
     let lines; try { lines=JSON.parse(sale.lines||'[]'); } catch { lines=[]; }
     if(!lines.length) lines=[newLine()]; else lines=lines.map(l=>({...l,id:Math.random().toString(36).slice(2)}));
@@ -65,7 +81,7 @@ export default function SalesPage() {
       } catch(e) { console.error('CRM add failed:', e); }
     }
     const linesClean = form.lines.filter(l=>l.product).map(l=>({product:l.product,qty:l.qty,price:l.price,total:lineTotal(l).toFixed(2)}));
-    const payload = {date:form.date,customer:finalCustomer,lines:JSON.stringify(linesClean),total:formTotal.toFixed(2),notes:form.notes,referredBy:form.referredBy,referralCredit:form.referredBy?String(CREDIT):'0'};
+    const payload = {date:form.date,customer:finalCustomer,nextRefillDate:form.nextRefillDate||'',lines:JSON.stringify(linesClean),total:formTotal.toFixed(2),notes:form.notes,referredBy:form.referredBy,referralCredit:form.referredBy?String(CREDIT):'0'};
     try {
       const res = await fetch('/api/sales',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:editIdx!==null?'update':'add',sale:payload,index:editIdx})});
       const d = await res.json();
@@ -225,6 +241,29 @@ export default function SalesPage() {
                 <div style={{display:'flex',justifyContent:'space-between',marginBottom:'8px'}}><label style={{...lbl,margin:0,color:'#a78bfa'}}>👤 Referred By</label><button onClick={()=>{setShowReferral(false);setForm(f=>({...f,referredBy:''}));}} style={{background:'transparent',border:'none',color:'#4b5563',fontSize:'18px',cursor:'pointer',lineHeight:1}}>×</button></div>
                 <select value={form.referredBy} onChange={e=>setForm(f=>({...f,referredBy:e.target.value}))} style={{...inp,color:form.referredBy?'#fff':'#4b5563'}}><option value=''>Select referrer...</option>{custOpts.filter(n=>n!==form.customer).map(n=><option key={n}>{n}</option>)}</select>
                 {form.referredBy&&<div style={{marginTop:'8px',fontSize:'12px',color:'#a78bfa'}}>✓ {form.referredBy} gets $20 credit</div>}
+              </div>
+            )}
+            {/* Dosage Plan Section */}
+            {!showDosePlan?(
+              <div style={{marginBottom:'12px'}}>
+                <button onClick={()=>setShowDosePlan(true)} style={{background:'rgba(99,102,241,0.1)',border:'1px solid rgba(99,102,241,0.3)',borderRadius:'6px',color:'#818cf8',fontSize:'12px',padding:'5px 12px',cursor:'pointer',fontWeight:600}}>📅 Add Dosage Plan</button>
+              </div>
+            ):(
+              <div style={{background:'rgba(99,102,241,0.06)',border:'1px solid rgba(99,102,241,0.2)',borderRadius:'10px',padding:'14px',marginBottom:'14px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
+                  <label style={{...lbl,margin:0,color:'#818cf8'}}>📅 Dosage Plan &amp; Next Refill</label>
+                  <button onClick={()=>{setShowDosePlan(false);setForm(f=>({...f,nextRefillDate:''}));}} style={{background:'transparent',border:'none',color:'#4b5563',fontSize:'18px',cursor:'pointer',lineHeight:1}}>×</button>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'8px',marginBottom:'8px'}}>
+                  <div><label style={{...lbl,fontSize:'10px'}}>Vials Sold</label><input type='number' min='1' step='1' placeholder='1' value={doseVials} onChange={e=>{setDoseVials(e.target.value);const nr=calcNextRefill(form.date,e.target.value,doseDosesPerVial,FREQ_DOSES[doseFreq]);setForm(f=>({...f,nextRefillDate:nr}));}} style={{...inp,padding:'8px 10px',fontSize:'14px'}} /></div>
+                  <div><label style={{...lbl,fontSize:'10px'}}>Doses / Vial</label><input type='number' min='1' step='1' placeholder='e.g. 10' value={doseDosesPerVial} onChange={e=>{setDoseDosesPerVial(e.target.value);const nr=calcNextRefill(form.date,doseVials,e.target.value,FREQ_DOSES[doseFreq]);setForm(f=>({...f,nextRefillDate:nr}));}} style={{...inp,padding:'8px 10px',fontSize:'14px'}} /></div>
+                  <div><label style={{...lbl,fontSize:'10px'}}>Frequency</label><select value={doseFreq} onChange={e=>{setDoseFreq(e.target.value);const nr=calcNextRefill(form.date,doseVials,doseDosesPerVial,FREQ_DOSES[e.target.value]);setForm(f=>({...f,nextRefillDate:nr}));}} style={{...inp,padding:'8px 10px',color:'#fff',fontSize:'14px'}}><option value='daily'>Daily</option><option value='twice-daily'>2x Day</option><option value='every-other-day'>Alt Day</option><option value='3x-week'>3x Week</option><option value='weekly'>Weekly</option></select></div>
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                  <div style={{flex:1}}><label style={{...lbl,fontSize:'10px'}}>Next Refill Date</label><input type='date' value={form.nextRefillDate} onChange={e=>setForm(f=>({...f,nextRefillDate:e.target.value}))} style={{...inp,colorScheme:'dark',padding:'8px 10px',fontSize:'14px'}} /></div>
+                  {form.nextRefillDate&&<div style={{fontSize:'12px',color:'#818cf8',marginTop:'16px'}}>📅 {form.nextRefillDate}</div>}
+                </div>
+                <p style={{color:'#4b5563',fontSize:'11px',margin:'6px 0 0'}}>Date auto-calculates from sale date + vials × doses ÷ frequency. Adjust manually if needed.</p>
               </div>
             )}
             <div style={{marginBottom:'16px'}}><label style={lbl}>Notes</label><input type='text' placeholder='Optional' value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} style={inp} /></div>

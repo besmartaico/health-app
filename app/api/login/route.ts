@@ -13,7 +13,9 @@ function getSheets() {
 const SID = () => process.env.GOOGLE_SHEETS_CRM_ID;
 
 export async function POST(req) {
-  const { email, password } = await req.json();
+  const body = await req.json();
+  const { password } = body;
+  const email = (body.email || '').toLowerCase().trim();
   if (!email || !password) return NextResponse.json({ success: false, error: 'Missing fields' });
   try {
     const sheets = getSheets();

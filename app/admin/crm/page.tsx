@@ -7,7 +7,25 @@ const td = { padding:'11px 16px', fontSize:'13px', color:'#d1d5db', borderBottom
 const inp = { width:'100%', background:'#0f0f0f', border:'1px solid #2a2a2a', borderRadius:'8px', padding:'10px 13px', color:'#fff', fontSize:'14px', outline:'none', boxSizing:'border-box' };
 const lbl = { display:'block', color:'#6b7280', fontSize:'11px', fontWeight:600, marginBottom:'5px', textTransform:'uppercase', letterSpacing:'0.07em' };
 const STATUSES = ['Active','Inactive','Lead','VIP'];
-const EMPTY = { name:'', email:'', phone:'', status:'Active', source:'', notes:'', tags:'', referralCredits:'0' };
+const EMPTY = { name:'', email:'', phone:'', status:'Active', source:'', notes:'', tags:'', referralCredits:'0', followUpDate:'' };
+
+function daysUntil(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr); d.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days = Math.round((d.getTime()-today.getTime())/(1000*60*60*24));
+  if (days < 0) return `${Math.abs(days)}d overdue`;
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Tomorrow';
+  return `in ${days}d`;
+}
+function isFollowUpSoon(dateStr) {
+  if (!dateStr) return false;
+  const d = new Date(dateStr); d.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days = Math.round((d.getTime()-today.getTime())/(1000*60*60*24));
+  return days <= 7;
+}
 
 export default function CRMPage() {
   const [customers, setCustomers] = useState([]);
@@ -77,7 +95,7 @@ export default function CRMPage() {
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'8px'}}>
         <div>
           <h1 style={{fontSize:'22px',fontWeight:800,color:'#fff',margin:'0 0 4px'}}>Customers</h1>
-          <p style={{color:'#6b7280',fontSize:'13px',margin:0}}>{customers.length} customers{totalCredits>0?` · $${totalCredits} total referral credits outstanding`:''}
+          <p style={{color:'#6b7280',fontSize:'13px',margin:0}}>{customers.length} customers{customers.filter(c=>c.followUpDate&&isFollowUpSoon(c.followUpDate)).length>0?<span style={{color:'#fbbf24',marginLeft:'8px',fontWeight:600}}>· {customers.filter(c=>c.followUpDate&&isFollowUpSoon(c.followUpDate)).length} follow-up{customers.filter(c=>c.followUpDate&&isFollowUpSoon(c.followUpDate)).length>1?'s':''} this week</span>:''}{totalCredits>0?` · $${totalCredits} total referral credits outstanding`:''}
           </p>
         </div>
         <div style={{display:'flex',gap:'8px'}}>
@@ -106,7 +124,77 @@ export default function CRMPage() {
         ):(
           <div style={{overflowX:'auto'}}>
           <table style={{width:'100%',borderCollapse:'collapse',minWidth:'800px'}}>
-            <thead><tr>{['Name','Email','Phone','Status','Source','Referral Credits','Tags',''].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
+            <thead><tr>{['Name','Email','Phone','Status','Follow-Up','Referral }</tr></thead>
+            <tbody>
+              {filtered.map((c,i)=>(
+                <tr key={i} onMouseOver={e=>e.currentTarget.style.background='#1f1f1f'} onMouseOut={e=>e.currentTarget.style.background='transparent'}>
+                  <td style={{...td,color:'#fff',fontWeight:600}}>{c.name}</td>
+                  <td style={{...td,color:'#9ca3af'}}>{c.email||'—'}</td>
+                  <td style={{...td,color:'#9ca3af'}}>{c.phone||'—'}</td>
+                  <td style={td}>
+                    <span style={{background:c.status==='VIP'?'rgba(251,191,36,0.1)':c.status==='Active'?'rgba(16,185,129,0.1)':c.status==='Lead'?'rgba(59,130,246,0.1)':'rgba(107,114,128,0.1)',color:c.status==='VIP'?'#fbbf24':c.status==='Active'?'#34d399':c.status==='Lead'?'#60a5fa':'#9ca3af',border:`1px solid ${c.status==='VIP'?'rgba(251,191,36,0.25)':c.status==='Active'?'rgba(16,185,129,0.25)':c.status==='Lead'?'rgba(59,130,246,0.25)':'rgba(107,114,128,0.25)'}`,borderRadius:'20px',padding:'2px 8px',fontSize:'11px',fontWeight:600}}>{c.status||'—'}</span>
+                  </td>
+                  <td style={{...td,color:'#6b7280',fontSize:'12px'}}>{c.source||'—'}</td>
+                  <td style={td}>
+                    {parseFloat(c.referralCredits||0)>0?(
+                      <span style={{background:'rgba(167,139,250,0.1)',border:'1px solid rgba(167,139,250,0.25)',borderRadius:'8px',padding:'3px 10px',color:'#a78bfa',fontSize:'13px',fontWeight:700}}>
+                        ${parseFloat(c.referralCredits).toFixed(0)}
+                      </span>
+                    ):<span style={{color:'#374151'}}>—</span>}
+                  </td>
+                  <td style={td}>
+                    {c.followUpDate?(
+                      <div>
+                        <div style={{color:isFollowUpSoon(c.followUpDate)?'#f87171':'#fbbf24',fontSize:'12px',fontWeight:600}}>{c.followUpDate}</div>
+                        <div style={{color:'#4b5563',fontSize:'10px'}}>{daysUntil(c.followUpDate)}</div>
+                      </div>
+                    ):<span style={{color:'#374151',fontSize:'11px'}}>—</span>}
+                  </td>
+                  <td style={td}>
+                    <div style={{display:'flex',gap:'6px'}}>
+                      <button onClick={()=>{setForm({name:c.name||'',email:c.email||'',phone:c.phone||'',status:c.status||'Active',source:c.source||'',notes:c.notes||'',tags:c.tags||'',referralCredits:c.referralCredits||'0',addedDate:c.addedDate||'',followUpDate:c.followUpDate||''});setEditIdx(c.id||i);setShowForm(true);}} style={{background:'#242424',border:'1px solid #2a2a2a',borderRadius:'6px',color:'#9ca3af',fontSize:'11px',padding:'4px 10px',cursor:'pointer'}}>Edit</button>
+                      <button onClick={()=>del(c.id||i,c.name)} style={{background:'transparent',border:'1px solid #2a2a2a',borderRadius:'6px',color:'#6b7280',fontSize:'11px',padding:'4px 10px',cursor:'pointer'}} onMouseOver={e=>{e.currentTarget.style.color='#f87171';e.currentTarget.style.borderColor='rgba(239,68,68,0.35)';}} onMouseOut={e=>{e.currentTarget.style.color='#6b7280';e.currentTarget.style.borderColor='#2a2a2a';}}>Del</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
+        )}
+      </div>
+
+      {showForm&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.8)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:50,padding:'16px'}}>
+          <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'18px',padding:'32px',width:'100%',maxWidth:'520px',boxShadow:'0 32px 64px rgba(0,0,0,0.5)',maxHeight:'90vh',overflowY:'auto'}}>
+            <h2 style={{color:'#fff',fontSize:'20px',fontWeight:800,margin:'0 0 24px'}}>{editIdx!==null?'Edit Customer':'Add Customer'}</h2>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px',marginBottom:'12px'}}>
+              <div style={{gridColumn:'1/-1'}}><label style={lbl}>Name *</label><input type='text' placeholder='Full name' value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} style={inp} autoFocus /></div>
+              <div><label style={lbl}>Email</label><input type='email' placeholder='email@example.com' value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} style={inp} /></div>
+              <div><label style={lbl}>Phone</label><input type='tel' placeholder='(555) 000-0000' value={form.phone} onChange={e=>setForm(p=>({...p,phone:e.target.value}))} style={inp} /></div>
+              <div><label style={lbl}>Status</label><select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} style={{...inp,color:'#fff'}}>{STATUSES.map(s=><option key={s}>{s}</option>)}</select></div>
+              <div><label style={lbl}>Source</label><input type='text' placeholder='e.g. Referral, Social' value={form.source} onChange={e=>setForm(p=>({...p,source:e.target.value}))} style={inp} /></div>
+              <div>
+                <label style={lbl}>Referral Credits ($)</label>
+                <div style={{position:'relative'}}>
+                  <span style={{position:'absolute',left:'12px',top:'50%',transform:'translateY(-50%)',color:'#a78bfa',fontSize:'14px',pointerEvents:'none'}}>$</span>
+                  <input type='number' step='1' min='0' placeholder='0' value={form.referralCredits} onChange={e=>setForm(p=>({...p,referralCredits:e.target.value}))} style={{...inp,paddingLeft:'26px'}} />
+                </div>
+              </div>
+              <div><label style={lbl}>Tags</label><input type='text' placeholder='e.g. VIP, Referring' value={form.tags} onChange={e=>setForm(p=>({...p,tags:e.target.value}))} style={inp} /></div>
+              <div><label style={lbl}>Follow-Up Date</label><input type='date' value={form.followUpDate} onChange={e=>setForm(p=>({...p,followUpDate:e.target.value}))} style={{...inp,colorScheme:'dark'}} /></div>
+              <div style={{gridColumn:'1/-1'}}><label style={lbl}>Notes</label><input type='text' placeholder='Optional notes' value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} style={inp} /></div>
+            </div>
+            <div style={{display:'flex',gap:'10px',marginTop:'8px'}}>
+              <button onClick={save} disabled={saving||!form.name.trim()} style={{flex:1,background:form.name.trim()&&!saving?'#7b1c2e':'#2d0e18',color:form.name.trim()&&!saving?'#fff':'#5a2030',border:'none',borderRadius:'10px',padding:'13px',fontSize:'14px',fontWeight:700,cursor:form.name.trim()&&!saving?'pointer':'not-allowed'}}>{saving?'Saving...':editIdx!==null?'Save Changes':'Add Customer'}</button>
+              <button onClick={()=>{setShowForm(false);setForm({...EMPTY});setEditIdx(null);}} style={{flex:1,background:'#242424',color:'#9ca3af',border:'1px solid #2a2a2a',borderRadius:'10px',padding:'13px',fontSize:'14px',cursor:'pointer'}}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+},''].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
             <tbody>
               {filtered.map((c,i)=>(
                 <tr key={i} onMouseOver={e=>e.currentTarget.style.background='#1f1f1f'} onMouseOut={e=>e.currentTarget.style.background='transparent'}>

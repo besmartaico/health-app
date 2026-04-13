@@ -15,11 +15,11 @@ const SID = () => process.env.GOOGLE_SHEETS_CRM_ID;
 export async function GET() {
   try {
     const sheets = getSheets();
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: 'Customers!A2:J' });
+    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: 'Customers!A2:K' });
     const customers = (res.data.values || []).map((r, i) => ({
       id: r[0]||String(i), name: r[1]||'', email: r[2]||'', phone: r[3]||'',
       status: r[4]||'', source: r[5]||'', notes: r[6]||'', addedDate: r[7]||'',
-      tags: r[8]||'', referralCredits: r[9]||'0',
+      tags: r[8]||'', referralCredits: r[9]||'0', followUpDate: r[10]||'',
     }));
     return NextResponse.json({ customers });
   } catch (e) { return NextResponse.json({ customers: [], error: String(e) }, { status: 500 }); }
@@ -30,7 +30,7 @@ export async function POST(req) {
   const { action } = body;
   try {
     const sheets = getSheets();
-    const row = (c) => [c.id||'', c.name||'', c.email||'', c.phone||'', c.status||'Active', c.source||'', c.notes||'', c.addedDate||new Date().toISOString().split('T')[0], c.tags||'', c.referralCredits||'0'];
+    const row = (c) => [c.id||'', c.name||'', c.email||'', c.phone||'', c.status||'Active', c.source||'', c.notes||'', c.addedDate||new Date().toISOString().split('T')[0], c.tags||'', c.referralCredits||'0', c.followUpDate||''];
 
     if (action === 'add') {
       const id = 'C'+Date.now();
@@ -39,7 +39,7 @@ export async function POST(req) {
     }
     if (action === 'update') {
       const r = Number(body.index) + 2;
-      await sheets.spreadsheets.values.update({ spreadsheetId: SID(), range: `Customers!A${r}:J${r}`, valueInputOption: 'RAW', requestBody: { values: [row(body.customer)] } });
+      await sheets.spreadsheets.values.update({ spreadsheetId: SID(), range: `Customers!A${r}:K${r}`, valueInputOption: 'RAW', requestBody: { values: [row(body.customer)] } });
       return NextResponse.json({ success: true });
     }
     if (action === 'delete') {

@@ -19,20 +19,18 @@ const NAV_ITEMS = [
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({ customers:0, sales:0, revenue:0, inventory:0 });
+  const [alerts, setAlerts] = useState([]);
 
   useEffect(() => {
     Promise.all([
       fetch('/api/crm').then(r=>r.json()).catch(()=>({customers:[]})),
       fetch('/api/sales').then(r=>r.json()).catch(()=>({sales:[]})),
       fetch('/api/inventory').then(r=>r.json()).catch(()=>({items:[]})),
-    ]).then(([c, s, inv]) => {
+      fetch('/api/alerts').then(r=>r.json()).catch(()=>({alerts:[]})),
+    ]).then(([c,s,inv,al]) => {
       const revenue = (s.sales||[]).reduce((sum,sale)=>sum+(parseFloat(sale.total)||0),0);
-      setStats({
-        customers: (c.customers||[]).length,
-        sales: (s.sales||[]).length,
-        revenue,
-        inventory: (inv.items||[]).length,
-      });
+      setStats({ customers:(c.customers||[]).length, sales:(s.sales||[]).length, revenue, inventory:(inv.items||[]).length });
+      setAlerts(al.alerts||[]);
     });
   }, []);
 
@@ -43,7 +41,34 @@ export default function DashboardPage() {
         <p style={{color:'#4b5563',fontSize:'13px',margin:0}}>BeSmart Health Admin</p>
       </div>
 
-      {/* Stats row - 2 per row on mobile, 4 on desktop */}
+      {/* Alerts panel — only shown when there are upcoming refills or follow-ups */}
+      {alerts.length>0&&(
+        <div style={{background:'rgba(251,191,36,0.06)',border:'1px solid rgba(251,191,36,0.25)',borderRadius:'14px',padding:'16px',marginBottom:'20px'}}>
+          <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'12px'}}>
+            <span style={{fontSize:'18px'}}>🔔</span>
+            <h3 style={{color:'#fbbf24',fontSize:'14px',fontWeight:700,margin:0}}>This Week — {alerts.length} action{alerts.length!==1?'s':''} needed</h3>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+            {alerts.map((a,i)=>(
+              <div key={i} style={{background:'rgba(0,0,0,0.2)',borderRadius:'8px',padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px',flexWrap:'wrap'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                  <span style={{fontSize:'16px'}}>{a.type==='refill'?'💉':'📞'}</span>
+                  <div>
+                    <div style={{color:'#fff',fontWeight:600,fontSize:'13px'}}>{a.customer}</div>
+                    <div style={{color:'#9ca3af',fontSize:'11px'}}>{a.type==='refill'?'Refill due':'Follow-up scheduled'}</div>
+                  </div>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{color:a.urgent?'#f87171':'#fbbf24',fontWeight:700,fontSize:'13px'}}>{a.type==='refill'?a.nextRefillDate:a.followUpDate}</div>
+                  <div style={{color:a.urgent?'#f87171':'#6b7280',fontSize:'11px'}}>{a.daysUntil===0?'Today':a.daysUntil===1?'Tomorrow':a.daysUntil<0?`${Math.abs(a.daysUntil)}d overdue`:`in ${a.daysUntil}d`}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Stats */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:'10px',marginBottom:'24px'}}>
         {[
           {label:'Customers',value:stats.customers,icon:'👥',color:'#60a5fa'},
@@ -59,7 +84,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Nav grid - auto-fit, min 130px per card */}
+      {/* Nav grid */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))',gap:'10px'}}>
         {NAV_ITEMS.map(item=>(
           <a key={item.href} href={item.href} style={{background:item.color,border:'1px solid '+item.border,borderRadius:'14px',padding:'18px 12px',textDecoration:'none',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'8px',textAlign:'center',minHeight:'90px'}}>
