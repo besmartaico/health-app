@@ -2,16 +2,22 @@
 'use client';
 import { useState, useEffect } from 'react';
 
-const th = { textAlign:'left', padding:'10px 12px', fontSize:'11px', fontWeight:700, color:'#4b5563', textTransform:'uppercase', letterSpacing:'0.07em', background:'#161616', borderBottom:'1px solid #1f1f1f', whiteSpace:'nowrap' };
-const td = { padding:'9px 12px', fontSize:'13px', color:'#d1d5db', borderBottom:'1px solid #1a1a1a', verticalAlign:'middle' };
+const th = { textAlign:'left', padding:'10px 14px', fontSize:'11px', fontWeight:700, color:'#4b5563', textTransform:'uppercase', letterSpacing:'0.07em', background:'#161616', borderBottom:'1px solid #1f1f1f', whiteSpace:'nowrap' };
+const td = { padding:'10px 14px', fontSize:'13px', color:'#d1d5db', borderBottom:'1px solid #1a1a1a', verticalAlign:'middle' };
 const inp = { width:'100%', background:'#0f0f0f', border:'1px solid #2a2a2a', borderRadius:'7px', padding:'9px 11px', color:'#fff', fontSize:'13px', outline:'none', boxSizing:'border-box' };
 const lbl = { display:'block', color:'#6b7280', fontSize:'11px', fontWeight:600, marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.06em' };
-const dinp = { ...{width:'100%', background:'#0f0f0f', border:'1px solid #2a2a2a', borderRadius:'7px', padding:'9px 11px', color:'#fff', fontSize:'13px', outline:'none', boxSizing:'border-box'} };
 const EMPTY = { itemType:'Peptide', name:'', vialSize:'', quantity:'0', unitCost:'', supplier:'', purchaseDate:'', notes:'', priceStandard:'', priceFnF:'', cost:'', reorderPoint:'' };
 const TYPES = ['Peptide','Supplement','Equipment','Supplies','Other'];
 
+const ADJ_TYPES = [
+  { id:'received',  label:'Received / Added',    color:'#34d399', bg:'rgba(52,211,153,0.1)',  sign:+1 },
+  { id:'sold',      label:'Used / Sold',          color:'#60a5fa', bg:'rgba(96,165,250,0.1)',  sign:-1 },
+  { id:'loss',      label:'Written Off / Lost',   color:'#f87171', bg:'rgba(248,113,113,0.1)', sign:-1 },
+  { id:'correction',label:'Manual Correction',    color:'#fbbf24', bg:'rgba(251,191,36,0.1)',  sign:0  },
+];
+
 function PriceCell({ val, color }) {
-  if (!val || val === '') return <span style={{color:'#2d2d2d'}}>—</span>;
+  if (!val) return <span style={{color:'#2d2d2d'}}>—</span>;
   const n = parseFloat(val);
   if (isNaN(n)) return <span style={{color:'#2d2d2d'}}>—</span>;
   return <span style={{color, fontWeight:700}}>${n.toFixed(0)}</span>;
@@ -22,7 +28,12 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
-  const [showModal, setShowModal] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [showAdj, setShowAdj] = useState(false);
+  const [adjItem, setAdjItem] = useState(null);
+  const [adjType, setAdjType] = useState('received');
+  const [adjAmt, setAdjAmt] = useState('');
+  const [adjNotes, setAdjNotes] = useState('');
   const [editIdx, setEditIdx] = useState(null);
   const [form, setForm] = useState({...EMPTY});
   const [saving, setSaving] = useState(false);
@@ -40,26 +51,40 @@ export default function InventoryPage() {
 
   const showT = (msg, err) => { setToast(msg); setToastErr(!!err); setTimeout(()=>setToast(''),3500); };
 
-  const adjustQty = async (item, delta) => {
-    const nq = Math.max(0, (parseInt(item.quantity)||0) + delta);
-    setItems(prev => prev.map((it,i) => i===parseInt(item.id) ? {...it, quantity:String(nq)} : it));
-    await fetch('/api/inventory', { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'update_qty', index: item.id, item: {...item, quantity:String(nq)} }) });
+  const openAdj = (item) => { setAdjItem(item); setAdjType('received'); setAdjAmt(''); setAdjNotes(''); setShowAdj(true); };
+
+  const adjDef = ADJ_TYPES.find(a=>a.id===adjType)||ADJ_TYPES[0];
+  const currentQty = adjItem ? (parseInt(adjItem.quantity)||0) : 0;
+  const adjAmtNum = parseInt(adjAmt)||0;
+  const newQty = adjType==='correction'
+    ? adjAmtNum
+    : Math.max(0, currentQty + adjDef.sign * adjAmtNum);
+
+  const saveAdj = async () => {
+    if (!adjAmt || adjAmtNum <= 0) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/inventory', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'adjust', index: adjItem.id, item: adjItem,
+          adjustment: { type: adjDef.label, amount: adjAmtNum, newQty, notes: adjNotes } }) });
+      const d = await res.json();
+      if (d.error) showT('Error: '+d.error, true);
+      else { showT('Adjustment saved!', false); setShowAdj(false); await load(); }
+    } catch(e) { showT('Error: '+e, true); }
+    setSaving(false);
   };
 
-  const openAdd = () => { setForm({...EMPTY, purchaseDate:new Date().toISOString().split('T')[0]}); setEditIdx(null); setShowModal(true); };
-
+  const openAdd = () => { setForm({...EMPTY, purchaseDate:new Date().toISOString().split('T')[0]}); setEditIdx(null); setShowEdit(true); };
   const openEdit = (item) => {
     setForm({ itemType:item.itemType||'Peptide', name:item.name||'', vialSize:item.vialSize||'',
       quantity:item.quantity||'0', unitCost:item.unitCost||'', supplier:item.supplier||'',
       purchaseDate:item.purchaseDate||'', notes:item.notes||'', createdDate:item.createdDate||'',
       priceStandard:item.priceStandard||'', priceFnF:item.priceFnF||'', cost:item.cost||'',
       reorderPoint:item.reorderPoint||'' });
-    setEditIdx(parseInt(item.id));
-    setShowModal(true);
+    setEditIdx(parseInt(item.id)); setShowEdit(true);
   };
 
-  const save = async () => {
+  const saveEdit = async () => {
     if (!form.name.trim()) return;
     setSaving(true);
     try {
@@ -67,7 +92,7 @@ export default function InventoryPage() {
         body: JSON.stringify({ action: editIdx!==null?'update':'add', index: editIdx, item: form }) });
       const d = await res.json();
       if (d.error) showT('Error: '+d.error, true);
-      else { showT(editIdx!==null?'Updated!':'Added!', false); setShowModal(false); setForm({...EMPTY}); setEditIdx(null); await load(); }
+      else { showT(editIdx!==null?'Updated!':'Added!', false); setShowEdit(false); setForm({...EMPTY}); setEditIdx(null); await load(); }
     } catch(e) { showT('Error: '+e, true); }
     setSaving(false);
   };
@@ -79,11 +104,10 @@ export default function InventoryPage() {
     await load();
   };
 
-  const syncing = false;
   const filtered = items.filter(it => {
-    const mt = typeFilter==='All' || it.itemType===typeFilter;
-    const mq = !search || it.name?.toLowerCase().includes(search.toLowerCase());
-    return mt && mq;
+    const mt = typeFilter==='All'||it.itemType===typeFilter;
+    const mq = !search||it.name?.toLowerCase().includes(search.toLowerCase());
+    return mt&&mq;
   });
   const f = p => e => setForm(prev=>({...prev,[p]:e.target.value}));
 
@@ -116,24 +140,24 @@ export default function InventoryPage() {
             <tbody>
               {filtered.map((item,i)=>(
                 <tr key={i} onMouseOver={e=>e.currentTarget.style.background='#1f1f1f'} onMouseOut={e=>e.currentTarget.style.background='transparent'}>
-                  <td style={{...td,color:'#fff',fontWeight:600,maxWidth:'200px'}}>
+                  <td style={{...td,color:'#fff',fontWeight:600,maxWidth:'220px'}}>
                     <div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</div>
-                    <div style={{fontSize:'10px',color:'#4b5563',marginTop:'1px',display:'flex',gap:'8px'}}>
-                      <span>{item.itemType}</span>
-                      {item.vialSize&&<span>{item.vialSize}</span>}
-                    </div>
+                    <div style={{fontSize:'10px',color:'#4b5563',marginTop:'1px'}}>{item.itemType}{item.vialSize?' · '+item.vialSize:''}</div>
                   </td>
                   <td style={td}>
-                    <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
-                      <button onClick={()=>adjustQty(item,-1)} style={{width:'26px',height:'26px',background:'#7b1c2e',color:'#fff',border:'none',borderRadius:'5px',cursor:'pointer',fontSize:'16px',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>−</button>
-                      <span style={{color:'#34d399',fontWeight:700,minWidth:'28px',textAlign:'center',fontSize:'15px'}}>{item.quantity||0}</span>
-                      <button onClick={()=>adjustQty(item,1)} style={{width:'26px',height:'26px',background:'#14532d',color:'#34d399',border:'1px solid #166534',borderRadius:'5px',cursor:'pointer',fontSize:'16px',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>+</button>
+                    <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                      <span style={{color:'#34d399',fontWeight:700,fontSize:'16px',minWidth:'28px'}}>{parseInt(item.quantity)||0}</span>
+                      <button onClick={()=>openAdj(item)} style={{background:'rgba(99,102,241,0.1)',border:'1px solid rgba(99,102,241,0.25)',borderRadius:'6px',color:'#818cf8',fontSize:'11px',fontWeight:600,padding:'3px 9px',cursor:'pointer',whiteSpace:'nowrap'}}>Adjust</button>
                     </div>
                   </td>
                   <td style={td}><PriceCell val={item.priceStandard} color='#34d399'/></td>
                   <td style={td}><PriceCell val={item.priceFnF} color='#a78bfa'/></td>
                   <td style={td}><PriceCell val={item.cost} color='#fbbf24'/></td>
-                  <td style={{...td,color:'#6b7280'}}>{item.reorderPoint||'—'}</td>
+                  <td style={{...td,color:'#6b7280'}}>
+                    {item.reorderPoint && parseInt(item.quantity) <= parseInt(item.reorderPoint)
+                      ? <span style={{color:'#f87171',fontWeight:700}}>⚠ {item.reorderPoint}</span>
+                      : (item.reorderPoint||'—')}
+                  </td>
                   <td style={td}>
                     <div style={{display:'flex',gap:'5px'}}>
                       <button onClick={()=>openEdit(item)} style={{background:'#242424',border:'1px solid #2a2a2a',borderRadius:'5px',color:'#9ca3af',fontSize:'11px',padding:'4px 10px',cursor:'pointer'}}>Edit</button>
@@ -147,21 +171,79 @@ export default function InventoryPage() {
         )}
       </div>
 
-      {showModal&&(
+      {/* ── ADJUST MODAL ── */}
+      {showAdj&&adjItem&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:50,padding:'16px'}}>
+          <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'20px',padding:'28px',width:'100%',maxWidth:'440px',boxShadow:'0 32px 64px rgba(0,0,0,0.6)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
+              <div>
+                <h2 style={{color:'#fff',fontSize:'17px',fontWeight:800,margin:'0 0 2px'}}>Adjust Inventory</h2>
+                <p style={{color:'#4b5563',fontSize:'12px',margin:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'280px'}}>{adjItem.name}</p>
+              </div>
+              <button onClick={()=>setShowAdj(false)} style={{background:'transparent',border:'none',color:'#6b7280',fontSize:'24px',cursor:'pointer',lineHeight:1}}>×</button>
+            </div>
+
+            {/* Current qty display */}
+            <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid #2a2a2a',borderRadius:'12px',padding:'14px 18px',marginBottom:'16px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div>
+                <div style={{color:'#6b7280',fontSize:'11px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'2px'}}>Current Qty</div>
+                <div style={{color:'#34d399',fontSize:'28px',fontWeight:800,lineHeight:1}}>{currentQty}</div>
+              </div>
+              {adjAmt&&(
+                <div style={{textAlign:'right'}}>
+                  <div style={{color:'#6b7280',fontSize:'11px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'2px'}}>After Adjustment</div>
+                  <div style={{color:newQty>currentQty?'#34d399':newQty<currentQty?'#f87171':'#fbbf24',fontSize:'28px',fontWeight:800,lineHeight:1}}>{newQty}</div>
+                </div>
+              )}
+            </div>
+
+            {/* Adjustment type */}
+            <div style={{marginBottom:'14px'}}>
+              <label style={lbl}>Adjustment Type</label>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'7px',marginTop:'4px'}}>
+                {ADJ_TYPES.map(a=>(
+                  <button key={a.id} onClick={()=>setAdjType(a.id)}
+                    style={{background:adjType===a.id?a.bg:'rgba(255,255,255,0.02)',border:'1px solid '+(adjType===a.id?a.color:'#2a2a2a'),borderRadius:'8px',padding:'9px 10px',color:adjType===a.id?a.color:'#6b7280',fontSize:'12px',fontWeight:adjType===a.id?700:400,cursor:'pointer',textAlign:'left',transition:'all 0.15s'}}>
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Amount */}
+            <div style={{marginBottom:'12px'}}>
+              <label style={lbl}>{adjType==='correction'?'Set Quantity To':'Quantity'}</label>
+              <input type='number' min='0' step='1' placeholder={adjType==='correction'?'Enter new quantity':'Number of units'} value={adjAmt} onChange={e=>setAdjAmt(e.target.value)} style={inp} autoFocus/>
+            </div>
+
+            {/* Notes */}
+            <div style={{marginBottom:'20px'}}>
+              <label style={lbl}>Notes / Reason</label>
+              <input type='text' placeholder='e.g. Patient order, damaged vial, inventory count...' value={adjNotes} onChange={e=>setAdjNotes(e.target.value)} style={inp}/>
+            </div>
+
+            <div style={{display:'flex',gap:'10px'}}>
+              <button onClick={saveAdj} disabled={saving||!adjAmt||adjAmtNum<=0}
+                style={{flex:1,background:adjAmt&&adjAmtNum>0&&!saving?adjDef.bg:'rgba(255,255,255,0.03)',color:adjAmt&&adjAmtNum>0&&!saving?adjDef.color:'#4b5563',border:'1px solid '+(adjAmt&&adjAmtNum>0?adjDef.color:'#2a2a2a'),borderRadius:'10px',padding:'13px',fontSize:'14px',fontWeight:700,cursor:adjAmt&&adjAmtNum>0&&!saving?'pointer':'not-allowed'}}>
+                {saving?'Saving...':'Save Adjustment'}
+              </button>
+              <button onClick={()=>setShowAdj(false)} style={{flex:1,background:'#242424',color:'#9ca3af',border:'1px solid #2a2a2a',borderRadius:'10px',padding:'13px',fontSize:'14px',cursor:'pointer'}}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── EDIT MODAL ── */}
+      {showEdit&&(
         <div className='modal-wrap' style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:50,padding:'16px'}}>
           <div className='modal-inner' style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'18px',padding:'26px',width:'100%',maxWidth:'580px',maxHeight:'90vh',overflowY:'auto',boxShadow:'0 32px 64px rgba(0,0,0,0.6)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'18px'}}>
               <h2 style={{color:'#fff',fontSize:'17px',fontWeight:800,margin:0}}>{editIdx!==null?'Edit Item':'Add Item'}</h2>
-              <button onClick={()=>{setShowModal(false);setForm({...EMPTY});setEditIdx(null);}} style={{background:'transparent',border:'none',color:'#6b7280',fontSize:'24px',cursor:'pointer'}}>×</button>
+              <button onClick={()=>{setShowEdit(false);setForm({...EMPTY});setEditIdx(null);}} style={{background:'transparent',border:'none',color:'#6b7280',fontSize:'24px',cursor:'pointer'}}>×</button>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'11px'}}>
               <div style={{gridColumn:'1/-1'}}><label style={lbl}>Name *</label><input type='text' placeholder='Product name' value={form.name} onChange={f('name')} style={inp} autoFocus/></div>
-              <div>
-                <label style={lbl}>Type</label>
-                <select value={form.itemType} onChange={f('itemType')} style={{...inp,color:'#fff'}}>
-                  {TYPES.map(t=><option key={t}>{t}</option>)}
-                </select>
-              </div>
+              <div><label style={lbl}>Type</label><select value={form.itemType} onChange={f('itemType')} style={{...inp,color:'#fff'}}>{TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
               <div><label style={lbl}>Vial Size</label><input type='text' placeholder='e.g. 10mg' value={form.vialSize} onChange={f('vialSize')} style={inp}/></div>
               <div><label style={lbl}>Quantity</label><input type='number' min='0' value={form.quantity} onChange={f('quantity')} style={inp}/></div>
               <div><label style={lbl}>Reorder Point</label><input type='number' min='0' placeholder='e.g. 5' value={form.reorderPoint} onChange={f('reorderPoint')} style={inp}/></div>
@@ -173,17 +255,14 @@ export default function InventoryPage() {
                   <div><label style={lbl}>Cost ($)</label><div style={{position:'relative'}}><span style={{position:'absolute',left:'9px',top:'50%',transform:'translateY(-50%)',color:'#4b5563'}}>$</span><input type='number' step='0.01' min='0' placeholder='0' value={form.cost} onChange={f('cost')} style={{...inp,paddingLeft:'22px'}}/></div></div>
                 </div>
               </div>
-              <div style={{borderTop:'1px solid #2a2a2a',paddingTop:'10px',marginTop:'2px'}}>
-                <label style={lbl}>Unit Cost ($)</label>
-                <div style={{position:'relative'}}><span style={{position:'absolute',left:'9px',top:'50%',transform:'translateY(-50%)',color:'#4b5563'}}>$</span><input type='number' step='0.01' min='0' placeholder='0' value={form.unitCost} onChange={f('unitCost')} style={{...inp,paddingLeft:'22px'}}/></div>
-              </div>
+              <div style={{borderTop:'1px solid #2a2a2a',paddingTop:'10px',marginTop:'2px'}}><label style={lbl}>Unit Cost ($)</label><div style={{position:'relative'}}><span style={{position:'absolute',left:'9px',top:'50%',transform:'translateY(-50%)',color:'#4b5563'}}>$</span><input type='number' step='0.01' min='0' value={form.unitCost} onChange={f('unitCost')} style={{...inp,paddingLeft:'22px'}}/></div></div>
               <div style={{borderTop:'1px solid #2a2a2a',paddingTop:'10px',marginTop:'2px'}}><label style={lbl}>Supplier</label><input type='text' placeholder='Supplier name' value={form.supplier} onChange={f('supplier')} style={inp}/></div>
               <div><label style={lbl}>Purchase Date</label><input type='date' value={form.purchaseDate} onChange={f('purchaseDate')} style={{...inp,colorScheme:'dark'}}/></div>
               <div><label style={lbl}>Notes</label><input type='text' placeholder='Optional notes' value={form.notes} onChange={f('notes')} style={inp}/></div>
             </div>
             <div style={{display:'flex',gap:'10px',marginTop:'18px'}}>
-              <button onClick={save} disabled={saving||!form.name.trim()} style={{flex:1,background:form.name.trim()&&!saving?'#7b1c2e':'#2d0e18',color:form.name.trim()&&!saving?'#fff':'#5a2030',border:'none',borderRadius:'9px',padding:'12px',fontSize:'14px',fontWeight:700,cursor:form.name.trim()&&!saving?'pointer':'not-allowed'}}>{saving?'Saving...':editIdx!==null?'Save Changes':'Add Item'}</button>
-              <button onClick={()=>{setShowModal(false);setForm({...EMPTY});setEditIdx(null);}} style={{flex:1,background:'#242424',color:'#9ca3af',border:'1px solid #2a2a2a',borderRadius:'9px',padding:'12px',fontSize:'14px',cursor:'pointer'}}>Cancel</button>
+              <button onClick={saveEdit} disabled={saving||!form.name.trim()} style={{flex:1,background:form.name.trim()&&!saving?'#7b1c2e':'#2d0e18',color:form.name.trim()&&!saving?'#fff':'#5a2030',border:'none',borderRadius:'9px',padding:'12px',fontSize:'14px',fontWeight:700,cursor:form.name.trim()&&!saving?'pointer':'not-allowed'}}>{saving?'Saving...':editIdx!==null?'Save Changes':'Add Item'}</button>
+              <button onClick={()=>{setShowEdit(false);setForm({...EMPTY});setEditIdx(null);}} style={{flex:1,background:'#242424',color:'#9ca3af',border:'1px solid #2a2a2a',borderRadius:'9px',padding:'12px',fontSize:'14px',cursor:'pointer'}}>Cancel</button>
             </div>
           </div>
         </div>

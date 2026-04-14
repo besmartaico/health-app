@@ -11,15 +11,31 @@ function getSheets() {
 }
 const SID = () => process.env.GOOGLE_SHEETS_CRM_ID;
 
-// A=itemType, B=peptide/name, C=vialSize, D=quantity, E=unitCost, F=supplier,
+// A=itemType, B=name, C=vialSize, D=quantity, E=unitCost, F=supplier,
 // G=purchaseDate, H=notes, I=createdDate, J=priceStandard, K=priceFnF, L=cost, M=reorderPoint
+function getQty(r) {
+  // Old data had quantity in col C and 'vials' in col D — migrate gracefully
+  const d = r[3] || '';
+  if (!isNaN(parseFloat(d)) && d.trim() !== '') return d.trim();
+  // Fall back to col C if D is non-numeric
+  const c = r[2] || '';
+  if (!isNaN(parseFloat(c)) && c.trim() !== '') return c.trim();
+  return '0';
+}
+function getVialSize(r) {
+  // If col C has a number and col D was 'vials', col C was actually quantity — return blank vialSize
+  const d = r[3] || '';
+  const c = r[2] || '';
+  if (isNaN(parseFloat(d)) && !isNaN(parseFloat(c))) return '';
+  return c;
+}
 function rowToObj(r, i) {
   return {
     id:           String(i),
     itemType:     r[0]  || '',
     name:         r[1]  || '',
-    vialSize:     r[2]  || '',
-    quantity:     r[3]  || '0',
+    vialSize:     getVialSize(r),
+    quantity:     getQty(r),
     unitCost:     r[4]  || '',
     supplier:     r[5]  || '',
     purchaseDate: r[6]  || '',
@@ -42,7 +58,7 @@ export async function GET() {
 }
 
 export async function POST(req) {
-  const { action, index, item } = await req.json();
+  const { action, index, item, adjustment } = await req.json();
   try {
     const sheets = getSheets();
     const sid = SID();
@@ -74,11 +90,22 @@ export async function POST(req) {
       return NextResponse.json({ success: true });
     }
 
-    if (action === 'update_qty') {
+    if (action === 'adjust') {
+      // adjustment = { type, amount, notes, newQty }
       const rowNum = Number(index) + 2;
+      // Update quantity in col D
       await sheets.spreadsheets.values.update({
         spreadsheetId: sid, range: `Inventory!D${rowNum}`, valueInputOption: 'RAW',
-        requestBody: { values: [[String(item.quantity)]] },
+        requestBody: { values: [[String(adjustment.newQty)]] },
+      });
+      // Log adjustment to InventoryLog sheet
+      const logDate = new Date().toLocaleString('en-US', { timeZone: 'America/Denver' });
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: sid, range: 'InventoryLog!A:G', valueInputOption: 'RAW',
+        requestBody: { values: [[
+          logDate, item.name||'', adjustment.type||'', String(adjustment.amount||0),
+          String(adjustment.newQty), adjustment.notes||'', item.id||'',
+        ]] },
       });
       return NextResponse.json({ success: true });
     }
