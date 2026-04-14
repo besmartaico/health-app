@@ -77,7 +77,7 @@ export default function InventoryPage() {
   const openAdd = () => { setForm({...EMPTY, purchaseDate:new Date().toISOString().split('T')[0]}); setEditIdx(null); setShowEdit(true); };
   const openEdit = (item) => {
     setForm({ itemType:item.itemType||'Peptide', name:item.name||'', vialSize:item.vialSize||'',
-      quantity:item.quantity||'0', unitCost:item.unitCost||'', supplier:item.supplier||',
+      quantity:item.quantity||'0', unitCost:item.unitCost||'', supplier:item.supplier||'',
       purchaseDate:item.purchaseDate||'', notes:item.notes||'', createdDate:item.createdDate||'',
       priceStandard:item.priceStandard||'', priceFnF:item.priceFnF||'',
       reorderPoint:item.reorderPoint||'' });

@@ -65,7 +65,7 @@ export async function POST(req) {
         spreadsheetId: sid, range: 'Inventory!A:L', valueInputOption: 'RAW',
         requestBody: { values: [[
           item.itemType||'Peptide', item.name||'', item.vialSize||'', item.quantity||'0',
-          item.unitCost||'', item.supplier||', item.purchaseDate||'', item.notes||'',
+          item.unitCost||'', item.supplier||'', item.purchaseDate||'', item.notes||'',
           new Date().toISOString().split('T')[0],
           item.priceStandard||'', item.priceFnF||'', item.reorderPoint||'',
         ]] },
