@@ -11,15 +11,10 @@ function getSheets() {
 }
 const SID = () => process.env.GOOGLE_SHEETS_CRM_ID;
 
-// A=itemType B=name C=vialSize D=quantity E=unitCost F=supplier
-// G=purchaseDate H=notes I=createdDate J=priceStandard K=priceFnF L=cost M=reorderPoint
-//
-// Legacy format had: C=quantity D='vials'
-// We detect this and fix on read AND can migrate permanently via 'migrate' action
+// A=itemType B=name C=vialSize D=quantity E=unitCost(ignored) F=supplier
+// G=purchaseDate H=notes I=createdDate J=priceStandard K=priceFnF L=reorderPoint
 function isLegacyRow(r) {
-  const c = (r[2]||'').trim();
-  const d = (r[3]||'').trim();
-  // Legacy: col C is a number AND col D is 'vials' or col D is '0' while col C > 0
+  const c = (r[2]||'').trim(); const d = (r[3]||'').trim();
   const cIsNum = c !== '' && !isNaN(parseFloat(c));
   const dIsVials = d.toLowerCase() === 'vials' || d === '';
   const dIsZeroWhileCHasQty = d === '0' && cIsNum && parseFloat(c) > 0;
@@ -30,12 +25,8 @@ function getQty(r) {
   const d = (r[3]||'').trim();
   return !isNaN(parseFloat(d)) ? d : '0';
 }
-function getVialSize(r) {
-  // Legacy rows had the actual vialSize embedded in the name (e.g. 'Tirzepatide / 15mg')
-  // col C was quantity, not vialSize — return blank
-  if (isLegacyRow(r)) return '';
-  return (r[2]||'').trim();
-}
+function getVialSize(r) { return isLegacyRow(r) ? '' : (r[2]||'').trim(); }
+
 function rowToObj(r, i) {
   return {
     id:           String(i),
@@ -43,22 +34,20 @@ function rowToObj(r, i) {
     name:         r[1]  || '',
     vialSize:     getVialSize(r),
     quantity:     getQty(r),
-    unitCost:     r[4]  || '',
     supplier:     r[5]  || '',
     purchaseDate: r[6]  || '',
     notes:        r[7]  || '',
     createdDate:  r[8]  || '',
     priceStandard:r[9]  || '',
     priceFnF:     r[10] || '',
-    cost:         r[11] || '',
-    reorderPoint: r[12] || '',
+    reorderPoint: r[11] || '',
   };
 }
 
 export async function GET() {
   try {
     const sheets = getSheets();
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: 'Inventory!A2:M' });
+    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: 'Inventory!A2:L' });
     const items = (res.data.values || []).map((r, i) => rowToObj(r, i));
     return NextResponse.json({ items });
   } catch(e) { return NextResponse.json({ items: [], error: String(e) }, { status: 500 }); }
@@ -70,40 +59,14 @@ export async function POST(req) {
     const sheets = getSheets();
     const sid = SID();
 
-    // ── ONE-TIME MIGRATION ──
-    // Fixes all legacy rows: moves qty from col C to col D, clears col C
-    if (action === 'migrate') {
-      const res = await sheets.spreadsheets.values.get({ spreadsheetId: sid, range: 'Inventory!A2:M' });
-      const rows = res.data.values || [];
-      const updates = [];
-      let fixed = 0;
-      for (let i = 0; i < rows.length; i++) {
-        const r = rows[i];
-        if (isLegacyRow(r)) {
-          const qty = getQty(r);
-          const rowNum = i + 2;
-          // Write: C='' (no vial size known), D=qty (correct column)
-          updates.push({ range: `Inventory!C${rowNum}:D${rowNum}`, values: [['', qty]] });
-          fixed++;
-        }
-      }
-      if (updates.length > 0) {
-        await sheets.spreadsheets.values.batchUpdate({
-          spreadsheetId: sid,
-          requestBody: { valueInputOption: 'RAW', data: updates },
-        });
-      }
-      return NextResponse.json({ success: true, fixed });
-    }
-
     if (action === 'add') {
       await sheets.spreadsheets.values.append({
-        spreadsheetId: sid, range: 'Inventory!A:M', valueInputOption: 'RAW',
+        spreadsheetId: sid, range: 'Inventory!A:L', valueInputOption: 'RAW',
         requestBody: { values: [[
           item.itemType||'Peptide', item.name||'', item.vialSize||'', item.quantity||'0',
-          item.unitCost||'', item.supplier||'', item.purchaseDate||'', item.notes||'',
+          '', item.supplier||'', item.purchaseDate||'', item.notes||'',
           new Date().toISOString().split('T')[0],
-          item.priceStandard||'', item.priceFnF||'', item.cost||'', item.reorderPoint||'',
+          item.priceStandard||'', item.priceFnF||'', item.reorderPoint||'',
         ]] },
       });
       return NextResponse.json({ success: true });
@@ -111,13 +74,16 @@ export async function POST(req) {
 
     if (action === 'update') {
       const rowNum = Number(index) + 2;
+      // Write cols A-D and F-L, skip E (unitCost — keep whatever is there)
       await sheets.spreadsheets.values.update({
-        spreadsheetId: sid, range: `Inventory!A${rowNum}:M${rowNum}`, valueInputOption: 'RAW',
+        spreadsheetId: sid, range: `Inventory!A${rowNum}:D${rowNum}`, valueInputOption: 'RAW',
+        requestBody: { values: [[item.itemType||'Peptide', item.name||'', item.vialSize||'', item.quantity||'0']] },
+      });
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: sid, range: `Inventory!F${rowNum}:L${rowNum}`, valueInputOption: 'RAW',
         requestBody: { values: [[
-          item.itemType||'Peptide', item.name||'', item.vialSize||'', item.quantity||'0',
-          item.unitCost||'', item.supplier||'', item.purchaseDate||'', item.notes||'',
-          item.createdDate||'',
-          item.priceStandard||'', item.priceFnF||'', item.cost||'', item.reorderPoint||'',
+          item.supplier||'', item.purchaseDate||'', item.notes||'', item.createdDate||'',
+          item.priceStandard||'', item.priceFnF||'', item.reorderPoint||'',
         ]] },
       });
       return NextResponse.json({ success: true });
@@ -142,8 +108,28 @@ export async function POST(req) {
 
     if (action === 'delete') {
       const rowNum = Number(index) + 2;
-      await sheets.spreadsheets.values.clear({ spreadsheetId: sid, range: `Inventory!A${rowNum}:M${rowNum}` });
+      await sheets.spreadsheets.values.clear({ spreadsheetId: sid, range: `Inventory!A${rowNum}:L${rowNum}` });
       return NextResponse.json({ success: true });
+    }
+
+    if (action === 'migrate') {
+      const res = await sheets.spreadsheets.values.get({ spreadsheetId: sid, range: 'Inventory!A2:L' });
+      const rows = res.data.values || [];
+      const updates = [];
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        if (isLegacyRow(r)) {
+          const qty = getQty(r);
+          updates.push({ range: `Inventory!C${i+2}:D${i+2}`, values: [['', qty]] });
+        }
+      }
+      if (updates.length > 0) {
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: sid,
+          requestBody: { valueInputOption: 'RAW', data: updates },
+        });
+      }
+      return NextResponse.json({ success: true, fixed: updates.length });
     }
 
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
