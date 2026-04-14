@@ -5,27 +5,25 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 const inp = { width:'100%', background:'#0f0f0f', border:'1px solid #2a2a2a', borderRadius:'8px', padding:'10px 13px', color:'#fff', fontSize:'14px', outline:'none', boxSizing:'border-box' };
 const lbl = { display:'block', color:'#6b7280', fontSize:'11px', fontWeight:600, marginBottom:'5px', textTransform:'uppercase', letterSpacing:'0.07em' };
 const card = { background:'#1a1a1a', border:'1px solid #2a2a2a', borderRadius:'12px', padding:'20px' };
-const FREQS = ['Daily','Twice Daily','Every Other Day','3x Per Week','Weekly','As Needed'];
 
-// ── Rich Text Toolbar ──
 function RichTextArea({ value, onChange, placeholder, minHeight, id }) {
   const ref = useRef(null);
   const insert = useCallback((before, after, sample) => {
     const el = ref.current; if (!el) return;
     const s = el.selectionStart, e = el.selectionEnd;
-    const sel = el.value.substring(s, e) || (sample||'');
-    const nv = el.value.substring(0, s) + before + sel + (after||'') + el.value.substring(e);
+    const sel = el.value.substring(s,e)||(sample||'');
+    const nv = el.value.substring(0,s)+before+sel+(after||'')+el.value.substring(e);
     onChange(nv);
-    setTimeout(() => { el.focus(); const p = s + before.length + sel.length + (after||'').length; el.setSelectionRange(p,p); }, 0);
-  }, [onChange]);
-  const insertLine = useCallback((prefix) => {
+    setTimeout(()=>{ el.focus(); const p=s+before.length+sel.length+(after||'').length; el.setSelectionRange(p,p); },0);
+  },[onChange]);
+  const insertLine = useCallback((prefix)=>{
     const el = ref.current; if (!el) return;
     const s = el.selectionStart;
-    const ls = el.value.substring(0, s).lastIndexOf('\n') + 1;
-    onChange(el.value.substring(0, ls) + prefix + el.value.substring(ls));
-    setTimeout(() => { el.focus(); el.setSelectionRange(s+prefix.length, s+prefix.length); }, 0);
-  }, [onChange]);
-  const btn = (c) => ({ background:'#1a1a1a', border:'1px solid #2a2a2a', borderRadius:'6px', color:c||'#6b7280', fontSize:'12px', fontWeight:700, padding:'4px 8px', cursor:'pointer', lineHeight:1.2, whiteSpace:'nowrap' });
+    const ls = el.value.substring(0,s).lastIndexOf('\n')+1;
+    onChange(el.value.substring(0,ls)+prefix+el.value.substring(ls));
+    setTimeout(()=>{ el.focus(); el.setSelectionRange(s+prefix.length,s+prefix.length); },0);
+  },[onChange]);
+  const btn = c => ({ background:'#1a1a1a', border:'1px solid #2a2a2a', borderRadius:'6px', color:c||'#6b7280', fontSize:'12px', fontWeight:700, padding:'4px 8px', cursor:'pointer', lineHeight:1.2, whiteSpace:'nowrap' });
   return (
     <div>
       <div style={{display:'flex',gap:'4px',flexWrap:'wrap',background:'#111',border:'1px solid #2a2a2a',borderRadius:'8px 8px 0 0',padding:'6px 8px',borderBottom:'1px solid #1a1a1a'}}>
@@ -41,23 +39,17 @@ function RichTextArea({ value, onChange, placeholder, minHeight, id }) {
       </div>
       <textarea ref={ref} id={id} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
         style={{...inp,minHeight:minHeight||'160px',resize:'vertical',fontFamily:'monospace',fontSize:'13px',lineHeight:1.7,borderRadius:'0 0 8px 8px',borderTop:'none'}}/>
-      <div style={{fontSize:'10px',color:'#374151',marginTop:'3px',display:'flex',gap:'12px',flexWrap:'wrap'}}>
-        <span>**bold**</span><span>*italic*</span><span>• bullet</span><span>## heading</span>
-      </div>
+      <div style={{fontSize:'10px',color:'#374151',marginTop:'3px',display:'flex',gap:'12px',flexWrap:'wrap'}}><span>**bold**</span><span>*italic*</span><span>• bullet</span><span>## heading</span></div>
     </div>
   );
 }
 
-// ── Searchable Dropdown ──
 function SearchableDropdown({ options, value, onChange, placeholder, instrMap }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef(null);
-  useEffect(() => {
-    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h);
-  }, []);
-  const filtered = options.filter(o => o.toLowerCase().includes(search.toLowerCase()));
+  useEffect(()=>{ const h=e=>{ if(ref.current&&!ref.current.contains(e.target))setOpen(false); }; document.addEventListener('mousedown',h); return()=>document.removeEventListener('mousedown',h); },[]);
+  const filtered = options.filter(o=>o.toLowerCase().includes(search.toLowerCase()));
   return (
     <div ref={ref} style={{position:'relative'}}>
       <div onClick={()=>setOpen(v=>!v)} style={{...inp,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
@@ -87,7 +79,6 @@ function SearchableDropdown({ options, value, onChange, placeholder, instrMap })
 }
 
 export default function InstructionsPage() {
-  // ── Core state ──
   const [peptides, setPeptides] = useState([]);
   const [hiddenPeptides, setHiddenPeptides] = useState(new Set());
   const [showHidden, setShowHidden] = useState(false);
@@ -97,7 +88,6 @@ export default function InstructionsPage() {
   const [toast, setToast] = useState('');
   const [toastErr, setToastErr] = useState(false);
   const [unsaved, setUnsaved] = useState(new Set());
-  // ── Plan modal state ──
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [planPatient, setPlanPatient] = useState('');
   const [planEmail, setPlanEmail] = useState('');
@@ -119,35 +109,26 @@ export default function InstructionsPage() {
       if (names.length > 0) setSelected(names[0]);
     });
     fetch('/api/instructions').then(r=>r.json()).then(d => {
+      // API now returns {instructions: {peptideName: {text, sideEffects, storage, vialMg, reconMl, defaultDose, defaultFreq}}}
       const raw = d.instructions || {};
       const map = {};
-      if (Array.isArray(raw)) {
-        raw.forEach(i => { map[i.peptide] = i; });
-      } else {
-        Object.entries(raw).forEach(([peptide, val]) => {
-          if (typeof val === 'string') {
-            try { map[peptide] = { peptide, ...JSON.parse(val) }; }
-            catch { map[peptide] = { peptide, text: val }; }
-          } else if (typeof val === 'object' && val) {
-            map[peptide] = { peptide, ...val };
-          }
-        });
-      }
-      try {
-        const drafts = JSON.parse(localStorage.getItem('instr_drafts') || '{}');
-        Object.entries(drafts).forEach(([peptide, data]) => {
-          map[peptide] = { ...(map[peptide]||{peptide}), ...data, _isDraft: true };
-        });
-      } catch {}
+      Object.entries(raw).forEach(([peptide, val]) => {
+        if (typeof val === 'object' && val !== null) {
+          map[peptide] = { peptide, ...val };
+        } else if (typeof val === 'string') {
+          // Legacy: plain text only
+          map[peptide] = { peptide, text: val };
+        }
+      });
       setInstructions(map);
     });
     try {
-      const stored = JSON.parse(localStorage.getItem('hiddenPeptides')||'[]');
-      setHiddenPeptides(new Set(stored));
+      const h = JSON.parse(localStorage.getItem('hiddenPeptides')||'[]');
+      setHiddenPeptides(new Set(h));
     } catch {}
   }, []);
 
-  const toggleHide = (name) => {
+  const toggleHide = name => {
     setHiddenPeptides(prev => {
       const next = new Set(prev);
       next.has(name) ? next.delete(name) : next.add(name);
@@ -159,16 +140,10 @@ export default function InstructionsPage() {
   const currentInstr = instructions[selected] || {};
 
   const setField = (field, val) => {
-    setInstructions(prev => {
-      const updated = { ...(prev[selected]||{peptide:selected}), [field]: val };
-      const next = { ...prev, [selected]: updated };
-      try {
-        const drafts = JSON.parse(localStorage.getItem('instr_drafts') || '{}');
-        drafts[selected] = { ...drafts[selected], [field]: val };
-        localStorage.setItem('instr_drafts', JSON.stringify(drafts));
-      } catch {}
-      return next;
-    });
+    setInstructions(prev => ({
+      ...prev,
+      [selected]: { ...(prev[selected]||{peptide:selected}), [field]: val }
+    }));
     setUnsaved(prev => new Set([...prev, selected]));
   };
 
@@ -176,31 +151,28 @@ export default function InstructionsPage() {
     if (!selected) return;
     setSaving(true);
     try {
-      const res = await fetch('/api/instructions', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'save', peptide: selected, data: instructions[selected]||{} }) });
+      const res = await fetch('/api/instructions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'save', peptide: selected, data: instructions[selected] || {} })
+      });
       const d = await res.json();
       if (d.error) { setToast('Error: '+d.error); setToastErr(true); }
       else {
-        setToast('Saved!'); setToastErr(false);
+        setToast('Saved to sheet!'); setToastErr(false);
         setUnsaved(prev => { const n = new Set(prev); n.delete(selected); return n; });
-        try {
-          const drafts = JSON.parse(localStorage.getItem('instr_drafts') || '{}');
-          delete drafts[selected];
-          localStorage.setItem('instr_drafts', JSON.stringify(drafts));
-        } catch {}
       }
     } catch(e) { setToast('Error: '+e); setToastErr(true); }
     setSaving(false);
     setTimeout(() => setToast(''), 3000);
   };
 
-  // ── Calc helper ──
   const calcMcg = (units, vialMg, reconMl) => {
     const mg = parseFloat(vialMg), ml = parseFloat(reconMl), u = parseFloat(units);
     if (!mg||!ml||!u) return null;
     return ((u/100)*(mg*1000/ml)).toFixed(0);
   };
 
-  // ── Open plan modal pre-filled from current peptide ──
   const openPlanModal = () => {
     const instr = instructions[selected] || {};
     setPlanVialMg(instr.vialMg || '');
@@ -217,23 +189,26 @@ export default function InstructionsPage() {
     setShowPlanModal(true);
   };
 
-  // ── Send plan ──
   const sendPlan = async () => {
     if (!planPatient || !planEmail) return;
     setSending(true); setSendResult('');
     const mcg = calcMcg(planDoseUnits, planVialMg, planReconMl);
     try {
-      const res = await fetch('/api/send-plan', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
-        patient: planPatient, email: planEmail, peptide: selected,
-        frequency: planFreq,
-        dose: planDoseUnits ? planDoseUnits+' units'+(mcg?' ('+mcg+' mcg)':'') : '',
-        vialMg: planVialMg, reconMl: planReconMl,
-        units: planDoseUnits, mcg: mcg||'',
-        notes: planNotes,
-        instructions: planText,
-        sideEffects: planSideEffects,
-        storage: planStorage,
-      })});
+      const res = await fetch('/api/send-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient: planPatient, email: planEmail, peptide: selected,
+          frequency: planFreq,
+          dose: planDoseUnits ? planDoseUnits+' units'+(mcg?' ('+mcg+' mcg)':'') : '',
+          vialMg: planVialMg, reconMl: planReconMl,
+          units: planDoseUnits, mcg: mcg||'',
+          notes: planNotes,
+          instructions: planText,
+          sideEffects: planSideEffects,
+          storage: planStorage,
+        })
+      });
       const d = await res.json();
       setSendResult(d.success ? 'sent' : 'error:'+(d.error||'Error'));
     } catch(e) { setSendResult('error:'+e); }
@@ -247,7 +222,7 @@ export default function InstructionsPage() {
     <div style={{display:'flex',minHeight:'100vh',background:'#131313'}}>
       {toast&&<div style={{position:'fixed',top:'70px',left:'50%',transform:'translateX(-50%)',background:toastErr?'#3a1a1a':'#1a3a2a',border:'1px solid '+(toastErr?'rgba(239,68,68,0.3)':'rgba(16,185,129,0.3)'),borderRadius:'10px',padding:'12px 20px',color:toastErr?'#fca5a5':'#34d399',fontSize:'13px',fontWeight:600,zIndex:200,whiteSpace:'nowrap'}}>{toastErr?'⚠️ ':'✓ '}{toast}</div>}
 
-      {/* ── SIDEBAR ── */}
+      {/* Sidebar */}
       <div style={{width:'240px',flexShrink:0,background:'#111',borderRight:'1px solid #1a1a1a',display:'flex',flexDirection:'column'}}>
         <div style={{padding:'16px',borderBottom:'1px solid #1a1a1a'}}>
           <h2 style={{color:'#fff',fontSize:'14px',fontWeight:700,margin:'0 0 12px'}}>Peptide Instructions</h2>
@@ -282,17 +257,16 @@ export default function InstructionsPage() {
         </div>
       </div>
 
-      {/* ── MAIN CONTENT ── */}
+      {/* Main content */}
       <div style={{flex:1,padding:'24px',overflowY:'auto',minWidth:0}}>
         {!selected?(
           <div style={{textAlign:'center',padding:'80px',color:'#4b5563'}}><div style={{fontSize:'48px',marginBottom:'16px'}}>💉</div><p>Select a peptide from the list</p></div>
         ):(
           <div style={{maxWidth:'800px'}}>
-            {/* Header */}
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'24px',flexWrap:'wrap',gap:'12px'}}>
               <div>
                 <h1 style={{color:'#fff',fontSize:'22px',fontWeight:800,margin:'0 0 4px'}}>{selected}</h1>
-                <p style={{color:'#6b7280',fontSize:'13px',margin:0}}>Default dosing &amp; patient instructions</p>
+                <p style={{color:'#6b7280',fontSize:'13px',margin:0}}>All fields save to Google Sheets</p>
               </div>
               <div style={{display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>
                 {unsaved.has(selected)&&<span style={{fontSize:'10px',color:'#fbbf24',fontWeight:700,background:'rgba(251,191,36,0.1)',border:'1px solid rgba(251,191,36,0.3)',borderRadius:'4px',padding:'2px 6px'}}>UNSAVED</span>}
@@ -316,17 +290,14 @@ export default function InstructionsPage() {
               )}
             </div>
 
-            {/* Default Dosing */}
+            {/* Default Dosing - frequency is now a free text input */}
             <div style={{...card,marginBottom:'14px',background:'rgba(99,102,241,0.04)',border:'1px solid rgba(99,102,241,0.15)'}}>
               <h3 style={{color:'#818cf8',fontSize:'13px',fontWeight:700,margin:'0 0 4px'}}>📅 Default Dosing</h3>
               <p style={{color:'#4b5563',fontSize:'12px',margin:'0 0 12px'}}>Pre-fills the Generate Plan modal automatically.</p>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
                 <div>
                   <label style={lbl}>Default Frequency</label>
-                  <select value={currentInstr.defaultFreq||''} onChange={e=>setField('defaultFreq',e.target.value)} style={{...inp,color:currentInstr.defaultFreq?'#fff':'#4b5563'}}>
-                    <option value=''>Select frequency...</option>
-                    {FREQS.map(f=><option key={f} value={f}>{f}</option>)}
-                  </select>
+                  <input type='text' placeholder='e.g. Weekly, Twice Daily, Mon/Wed/Fri...' value={currentInstr.defaultFreq||''} onChange={e=>setField('defaultFreq',e.target.value)} style={inp}/>
                 </div>
                 <div>
                   <label style={lbl}>Default Dose (units)</label>
@@ -364,7 +335,7 @@ export default function InstructionsPage() {
         )}
       </div>
 
-      {/* ── GENERATE PLAN MODAL ── */}
+      {/* Generate Plan Modal */}
       {showPlanModal&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:300,padding:'16px'}}>
           <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'20px',width:'100%',maxWidth:'640px',maxHeight:'92vh',overflowY:'auto',boxShadow:'0 32px 80px rgba(0,0,0,0.6)'}}>
@@ -375,7 +346,6 @@ export default function InstructionsPage() {
               </div>
               <button onClick={()=>{setShowPlanModal(false);setSendResult('');}} style={{background:'transparent',border:'none',color:'#6b7280',fontSize:'28px',cursor:'pointer',lineHeight:1,padding:'4px'}}>×</button>
             </div>
-
             <div style={{padding:'24px 28px'}}>
               {/* Patient */}
               <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid #2a2a2a',borderRadius:'12px',padding:'16px',marginBottom:'14px'}}>
@@ -385,18 +355,11 @@ export default function InstructionsPage() {
                   <div><label style={lbl}>Email *</label><input type='email' placeholder='patient@email.com' value={planEmail} onChange={e=>setPlanEmail(e.target.value)} style={inp}/></div>
                 </div>
               </div>
-
               {/* Dosing */}
               <div style={{background:'rgba(99,102,241,0.04)',border:'1px solid rgba(99,102,241,0.15)',borderRadius:'12px',padding:'16px',marginBottom:'14px'}}>
                 <h3 style={{color:'#818cf8',fontSize:'12px',fontWeight:700,margin:'0 0 12px',textTransform:'uppercase',letterSpacing:'0.07em'}}>Dosing</h3>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px'}}>
-                  <div>
-                    <label style={lbl}>Frequency</label>
-                    <select value={planFreq} onChange={e=>setPlanFreq(e.target.value)} style={{...inp,color:planFreq?'#fff':'#4b5563'}}>
-                      <option value=''>Select...</option>
-                      {FREQS.map(f=><option key={f} value={f}>{f}</option>)}
-                    </select>
-                  </div>
+                  <div><label style={lbl}>Frequency</label><input type='text' placeholder='e.g. Weekly' value={planFreq} onChange={e=>setPlanFreq(e.target.value)} style={inp}/></div>
                   <div>
                     <label style={lbl}>Dose (units)</label>
                     <div style={{position:'relative'}}>
@@ -409,26 +372,21 @@ export default function InstructionsPage() {
                   <div><label style={lbl}>BAC Water (mL)</label><input type='number' step='0.1' value={planReconMl} onChange={e=>setPlanReconMl(e.target.value)} style={inp}/></div>
                 </div>
               </div>
-
-              {/* Patient Instructions text */}
+              {/* Instructions */}
               <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid #2a2a2a',borderRadius:'12px',padding:'16px',marginBottom:'14px'}}>
                 <label style={{...lbl,marginBottom:'8px',fontSize:'12px'}}>Patient Instructions</label>
                 <textarea value={planText} onChange={e=>setPlanText(e.target.value)} placeholder='Patient instructions...' style={{...inp,minHeight:'100px',resize:'vertical',fontFamily:'monospace',fontSize:'12px',lineHeight:1.6}}/>
               </div>
-
               {/* Side Effects */}
               <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid #2a2a2a',borderRadius:'12px',padding:'16px',marginBottom:'14px'}}>
                 <label style={{...lbl,marginBottom:'8px',fontSize:'12px'}}>Side Effects &amp; Notes</label>
-                <textarea value={planSideEffects} onChange={e=>setPlanSideEffects(e.target.value)} placeholder='Side effects and notes...' style={{...inp,minHeight:'80px',resize:'vertical',fontFamily:'monospace',fontSize:'12px',lineHeight:1.6}}/>
+                <textarea value={planSideEffects} onChange={e=>setPlanSideEffects(e.target.value)} placeholder='Side effects...' style={{...inp,minHeight:'80px',resize:'vertical',fontFamily:'monospace',fontSize:'12px',lineHeight:1.6}}/>
               </div>
-
-              {/* Storage + Extra Notes */}
+              {/* Storage + Notes */}
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'20px'}}>
                 <div><label style={lbl}>Storage</label><input type='text' value={planStorage} onChange={e=>setPlanStorage(e.target.value)} placeholder='Storage instructions...' style={inp}/></div>
                 <div><label style={lbl}>Extra Notes for Patient</label><input type='text' value={planNotes} onChange={e=>setPlanNotes(e.target.value)} placeholder='Specific to this patient...' style={inp}/></div>
               </div>
-
-              {/* Send / Success / Error */}
               {sendResult===''&&(
                 <button onClick={sendPlan} disabled={sending||!planPatient||!planEmail}
                   style={{width:'100%',background:planPatient&&planEmail&&!sending?'#7b1c2e':'#2d0e18',color:planPatient&&planEmail&&!sending?'#fff':'#5a2030',border:'none',borderRadius:'10px',padding:'14px',fontSize:'15px',fontWeight:700,cursor:planPatient&&planEmail&&!sending?'pointer':'not-allowed'}}>
