@@ -11,7 +11,7 @@ function getSheets() {
 }
 const SID = () => process.env.GOOGLE_SHEETS_CRM_ID;
 
-// A=itemType B=name C=vialSize D=quantity E=unitCost(ignored) F=supplier
+// A=itemType B=name C=vialSize D=quantity E=unitCost F=supplier
 // G=purchaseDate H=notes I=createdDate J=priceStandard K=priceFnF L=reorderPoint
 function isLegacyRow(r) {
   const c = (r[2]||'').trim(); const d = (r[3]||'').trim();
@@ -29,20 +29,37 @@ function getVialSize(r) { return isLegacyRow(r) ? '' : (r[2]||'').trim(); }
 
 function rowToObj(r, i) {
   return {
-    id:           String(i),
-    itemType:     r[0]  || '',
-    name:         r[1]  || '',
-    vialSize:     getVialSize(r),
-    quantity:     getQty(r),
-    unitCost:     r[4]  || '',
-    supplier:     r[5]  || '',
-    purchaseDate: r[6]  || '',
-    notes:        r[7]  || '',
-    createdDate:  r[8]  || '',
-    priceStandard:r[9]  || '',
-    priceFnF:     r[10] || '',
-    reorderPoint: r[11] || '',
+    id:            String(i),
+    itemType:      r[0]  || '',
+    name:          r[1]  || '',
+    vialSize:      getVialSize(r),
+    quantity:      getQty(r),
+    unitCost:      r[4]  || '',
+    supplier:      r[5]  || '',
+    purchaseDate:  r[6]  || '',
+    notes:         r[7]  || '',
+    createdDate:   r[8]  || '',
+    priceStandard: r[9]  || '',
+    priceFnF:      r[10] || '',
+    reorderPoint:  r[11] || '',
   };
+}
+
+function toRow(item, isNew) {
+  return [
+    item.itemType      || 'Peptide',
+    item.name          || '',
+    item.vialSize      || '',
+    item.quantity      || '0',
+    item.unitCost      || '',
+    item.supplier      || '',
+    item.purchaseDate  || '',
+    item.notes         || '',
+    isNew ? new Date().toISOString().split('T')[0] : (item.createdDate || ''),
+    item.priceStandard || '',
+    item.priceFnF      || '',
+    item.reorderPoint  || '',
+  ];
 }
 
 export async function GET() {
@@ -63,29 +80,16 @@ export async function POST(req) {
     if (action === 'add') {
       await sheets.spreadsheets.values.append({
         spreadsheetId: sid, range: 'Inventory!A:L', valueInputOption: 'RAW',
-        requestBody: { values: [[
-          item.itemType||'Peptide', item.name||'', item.vialSize||'', item.quantity||'0',
-          item.unitCost||'', item.supplier||'', item.purchaseDate||'', item.notes||'',
-          new Date().toISOString().split('T')[0],
-          item.priceStandard||'', item.priceFnF||'', item.reorderPoint||'',
-        ]] },
+        requestBody: { values: [toRow(item, true)] },
       });
       return NextResponse.json({ success: true });
     }
 
     if (action === 'update') {
       const rowNum = Number(index) + 2;
-      // Write cols A-D and F-L, skip E (unitCost — keep whatever is there)
       await sheets.spreadsheets.values.update({
-        spreadsheetId: sid, range: `Inventory!A${rowNum}:D${rowNum}`, valueInputOption: 'RAW',
-        requestBody: { values: [[item.itemType||'Peptide', item.name||'', item.vialSize||'', item.quantity||'0']] },
-      });
-      await sheets.spreadsheets.values.update({
-        spreadsheetId: sid, range: `Inventory!F${rowNum}:L${rowNum}`, valueInputOption: 'RAW',
-        requestBody: { values: [[
-          item.supplier||'', item.purchaseDate||'', item.notes||'', item.createdDate||'',
-          item.priceStandard||'', item.priceFnF||'', item.reorderPoint||'',
-        ]] },
+        spreadsheetId: sid, range: `Inventory!A${rowNum}:L${rowNum}`, valueInputOption: 'RAW',
+        requestBody: { values: [toRow(item, false)] },
       });
       return NextResponse.json({ success: true });
     }
@@ -100,8 +104,9 @@ export async function POST(req) {
       await sheets.spreadsheets.values.append({
         spreadsheetId: sid, range: 'InventoryLog!A:G', valueInputOption: 'RAW',
         requestBody: { values: [[
-          logDate, item.name||'', adjustment.type||'', String(adjustment.amount||0),
-          String(adjustment.newQty), adjustment.notes||'', item.id||'',
+          logDate, item.name||'', adjustment.type||'',
+          String(adjustment.amount||0), String(adjustment.newQty),
+          adjustment.notes||'', item.id||'',
         ]] },
       });
       return NextResponse.json({ success: true });
@@ -118,10 +123,8 @@ export async function POST(req) {
       const rows = res.data.values || [];
       const updates = [];
       for (let i = 0; i < rows.length; i++) {
-        const r = rows[i];
-        if (isLegacyRow(r)) {
-          const qty = getQty(r);
-          updates.push({ range: `Inventory!C${i+2}:D${i+2}`, values: [['', qty]] });
+        if (isLegacyRow(rows[i])) {
+          updates.push({ range: `Inventory!C${i+2}:D${i+2}`, values: [['', getQty(rows[i])]] });
         }
       }
       if (updates.length > 0) {
