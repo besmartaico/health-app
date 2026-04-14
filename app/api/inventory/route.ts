@@ -14,7 +14,7 @@ const SID = () => process.env.GOOGLE_SHEETS_CRM_ID;
 export async function GET() {
   try {
     const sheets = getSheets();
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: 'Inventory!A2:F' });
+    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: 'Inventory!A2:K' });
     const items = (res.data.values || []).map((r, i) => ({
       id: String(i),
       itemType: r[0] || '',
@@ -23,6 +23,8 @@ export async function GET() {
       unit: r[3] || '',
       reorderLevel: r[4] || '',
       notes: r[5] || '',
+      priceStandard: r[9] || '',
+      priceFnF: r[10] || '',
     }));
     return NextResponse.json({ items });
   } catch (e) {
@@ -46,6 +48,15 @@ export async function POST(req) {
       await sheets.spreadsheets.values.update({
         spreadsheetId: SID(), range: `Inventory!A${row}:F${row}`, valueInputOption: 'RAW',
         requestBody: { values: [[item.itemType||'', item.name||'', item.quantity||'0', item.unit||'', item.reorderLevel||'', item.notes||'']] },
+      });
+      return NextResponse.json({ success: true });
+    }
+    if (action === 'update_price') {
+      const rowNum = Number(index) + 2;
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SID(), range: `Inventory!J${rowNum}:K${rowNum}`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [[item.priceStandard||'', item.priceFnF||'']] },
       });
       return NextResponse.json({ success: true });
     }
