@@ -11,23 +11,30 @@ function getSheets() {
 }
 const SID = () => process.env.GOOGLE_SHEETS_CRM_ID;
 
-// A=itemType, B=name, C=vialSize, D=quantity, E=unitCost, F=supplier,
-// G=purchaseDate, H=notes, I=createdDate, J=priceStandard, K=priceFnF, L=cost, M=reorderPoint
+// A=itemType B=name C=vialSize D=quantity E=unitCost F=supplier
+// G=purchaseDate H=notes I=createdDate J=priceStandard K=priceFnF L=cost M=reorderPoint
+//
+// Legacy format had: C=quantity D='vials'
+// We detect this and fix on read AND can migrate permanently via 'migrate' action
+function isLegacyRow(r) {
+  const c = (r[2]||'').trim();
+  const d = (r[3]||'').trim();
+  // Legacy: col C is a number AND col D is 'vials' or col D is '0' while col C > 0
+  const cIsNum = c !== '' && !isNaN(parseFloat(c));
+  const dIsVials = d.toLowerCase() === 'vials' || d === '';
+  const dIsZeroWhileCHasQty = d === '0' && cIsNum && parseFloat(c) > 0;
+  return cIsNum && (dIsVials || dIsZeroWhileCHasQty);
+}
 function getQty(r) {
-  // Old data had quantity in col C and 'vials' in col D — migrate gracefully
-  const d = r[3] || '';
-  if (!isNaN(parseFloat(d)) && d.trim() !== '') return d.trim();
-  // Fall back to col C if D is non-numeric
-  const c = r[2] || '';
-  if (!isNaN(parseFloat(c)) && c.trim() !== '') return c.trim();
-  return '0';
+  if (isLegacyRow(r)) return (r[2]||'0').trim();
+  const d = (r[3]||'').trim();
+  return !isNaN(parseFloat(d)) ? d : '0';
 }
 function getVialSize(r) {
-  // If col C has a number and col D was 'vials', col C was actually quantity — return blank vialSize
-  const d = r[3] || '';
-  const c = r[2] || '';
-  if (isNaN(parseFloat(d)) && !isNaN(parseFloat(c))) return '';
-  return c;
+  // Legacy rows had the actual vialSize embedded in the name (e.g. 'Tirzepatide / 15mg')
+  // col C was quantity, not vialSize — return blank
+  if (isLegacyRow(r)) return '';
+  return (r[2]||'').trim();
 }
 function rowToObj(r, i) {
   return {
@@ -63,6 +70,32 @@ export async function POST(req) {
     const sheets = getSheets();
     const sid = SID();
 
+    // ── ONE-TIME MIGRATION ──
+    // Fixes all legacy rows: moves qty from col C to col D, clears col C
+    if (action === 'migrate') {
+      const res = await sheets.spreadsheets.values.get({ spreadsheetId: sid, range: 'Inventory!A2:M' });
+      const rows = res.data.values || [];
+      const updates = [];
+      let fixed = 0;
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        if (isLegacyRow(r)) {
+          const qty = getQty(r);
+          const rowNum = i + 2;
+          // Write: C='' (no vial size known), D=qty (correct column)
+          updates.push({ range: `Inventory!C${rowNum}:D${rowNum}`, values: [['', qty]] });
+          fixed++;
+        }
+      }
+      if (updates.length > 0) {
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: sid,
+          requestBody: { valueInputOption: 'RAW', data: updates },
+        });
+      }
+      return NextResponse.json({ success: true, fixed });
+    }
+
     if (action === 'add') {
       await sheets.spreadsheets.values.append({
         spreadsheetId: sid, range: 'Inventory!A:M', valueInputOption: 'RAW',
@@ -91,14 +124,11 @@ export async function POST(req) {
     }
 
     if (action === 'adjust') {
-      // adjustment = { type, amount, notes, newQty }
       const rowNum = Number(index) + 2;
-      // Update quantity in col D
       await sheets.spreadsheets.values.update({
         spreadsheetId: sid, range: `Inventory!D${rowNum}`, valueInputOption: 'RAW',
         requestBody: { values: [[String(adjustment.newQty)]] },
       });
-      // Log adjustment to InventoryLog sheet
       const logDate = new Date().toLocaleString('en-US', { timeZone: 'America/Denver' });
       await sheets.spreadsheets.values.append({
         spreadsheetId: sid, range: 'InventoryLog!A:G', valueInputOption: 'RAW',
