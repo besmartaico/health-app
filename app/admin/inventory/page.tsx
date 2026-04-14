@@ -167,7 +167,7 @@ export default function InventoryPage() {
         ):(
           <table style={{width:'100%',borderCollapse:'collapse',minWidth:'560px'}}>
             <thead><tr>
-              {['Item','Qty — tap to adjust','Unit','Reorder',''].map(h=><th key={h} style={th}>{h}</th>)}
+              {['Item','Qty — tap to adjust','Unit','Standard $','F&F $','Reorder',''].map(h=><th key={h} style={th}>{h}</th>)}
             </tr></thead>
             <tbody>
               {filtered.map((item,i)=>(
