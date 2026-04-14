@@ -14,7 +14,7 @@ const SID = () => process.env.GOOGLE_SHEETS_CRM_ID;
 export async function GET() {
   try {
     const sheets = getSheets();
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: 'Inventory!A2:K' });
+    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: 'Inventory!A2:L' });
     const items = (res.data.values || []).map((r, i) => ({
       id: String(i),
       itemType: r[0] || '',
@@ -25,6 +25,7 @@ export async function GET() {
       notes: r[5] || '',
       priceStandard: r[9] || '',
       priceFnF: r[10] || '',
+      cost: r[11] || '',
     }));
     return NextResponse.json({ items });
   } catch (e) {

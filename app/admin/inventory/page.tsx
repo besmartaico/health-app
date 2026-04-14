@@ -7,7 +7,7 @@ const td = { padding:'10px 16px', fontSize:'13px', color:'#d1d5db', borderBottom
 const inp = { width:'100%', background:'#0f0f0f', border:'1px solid #2a2a2a', borderRadius:'8px', padding:'10px 13px', color:'#fff', fontSize:'14px', outline:'none', boxSizing:'border-box' };
 const lbl = { display:'block', color:'#6b7280', fontSize:'11px', fontWeight:600, marginBottom:'5px', textTransform:'uppercase', letterSpacing:'0.07em' };
 const TYPES = ['Peptide','Supplement','Equipment','Supplies','Other'];
-const EMPTY = { itemType:'Peptide', name:'', quantity:'', unit:'vials', reorderLevel:'', notes:'', priceStandard:'', priceFnF:'' };
+const EMPTY = { itemType:'Peptide', name:'', quantity:'', unit:'vials', reorderLevel:'', notes:'', priceStandard:'', priceFnF:'', cost:'' };
 
 // Inline quantity stepper component
 function QtyCell({ item, index, onSaved }) {
@@ -167,7 +167,7 @@ export default function InventoryPage() {
         ):(
           <table style={{width:'100%',borderCollapse:'collapse',minWidth:'560px'}}>
             <thead><tr>
-              {['Item','Qty — tap to adjust','Unit','Standard $','F&F $','Reorder',''].map(h=><th key={h} style={th}>{h}</th>)}
+              {['Item','Qty — tap to adjust','Unit','Standard $','F&F $','Cost $','Reorder',''].map(h=><th key={h} style={th}>{h}</th>)}
             </tr></thead>
             <tbody>
               {filtered.map((item,i)=>(
@@ -190,10 +190,15 @@ export default function InventoryPage() {
                       ?<span style={{color:'#a78bfa',fontWeight:700}}>${parseFloat(item.priceFnF).toFixed(0)}</span>
                       :<span style={{color:'#2a2a2a',fontSize:'11px'}}>—</span>}
                   </td>
+                  <td style={td}>
+                    {item.cost
+                      ?<span style={{color:'#fbbf24',fontWeight:700}}>${parseFloat(item.cost).toFixed(0)}</span>
+                      :<span style={{color:'#2a2a2a',fontSize:'11px'}}>—</span>}
+                  </td>
                   <td style={{...td,color:'#6b7280'}}>{item.reorderLevel||'—'}</td>
                   <td style={td}>
                     <div style={{display:'flex',gap:'6px'}}>
-                      <button onClick={()=>{setForm({itemType:item.itemType||'Peptide',name:item.name||'',quantity:item.quantity||'',unit:item.unit||'vials',reorderLevel:item.reorderLevel||'',notes:item.notes||'',priceStandard:item.priceStandard||'',priceFnF:item.priceFnF||''});setEditIdx(item.id||i);setShowForm(true);}} style={{background:'#242424',border:'1px solid #2a2a2a',borderRadius:'6px',color:'#9ca3af',fontSize:'11px',padding:'4px 10px',cursor:'pointer'}}>Edit</button>
+                      <button onClick={()=>{setForm({itemType:item.itemType||'Peptide',name:item.name||'',quantity:item.quantity||'',unit:item.unit||'vials',reorderLevel:item.reorderLevel||'',notes:item.notes||'',priceStandard:item.priceStandard||'',priceFnF:item.priceFnF||'',cost:item.cost||''});setEditIdx(item.id||i);setShowForm(true);}} style={{background:'#242424',border:'1px solid #2a2a2a',borderRadius:'6px',color:'#9ca3af',fontSize:'11px',padding:'4px 10px',cursor:'pointer'}}>Edit</button>
                       <button onClick={()=>del(item.id||i,item.name)} style={{background:'transparent',border:'1px solid #2a2a2a',borderRadius:'6px',color:'#6b7280',fontSize:'11px',padding:'4px 8px',cursor:'pointer'}} onMouseOver={e=>{e.currentTarget.style.color='#f87171';}} onMouseOut={e=>{e.currentTarget.style.color='#6b7280';}}>Del</button>
                     </div>
                   </td>
@@ -229,6 +234,13 @@ export default function InventoryPage() {
                 <div style={{position:'relative'}}>
                   <span style={{position:'absolute',left:'10px',top:'50%',transform:'translateY(-50%)',color:'#4b5563',fontSize:'13px'}}>$</span>
                   <input type='number' step='0.01' min='0' placeholder='0.00' value={form.priceFnF} onChange={e=>setForm(p=>({...p,priceFnF:e.target.value}))} style={{...inp,paddingLeft:'24px'}} />
+                </div>
+              </div>
+              <div>
+                <label style={lbl}>Cost ($)</label>
+                <div style={{position:'relative'}}>
+                  <span style={{position:'absolute',left:'10px',top:'50%',transform:'translateY(-50%)',color:'#4b5563',fontSize:'13px'}}>$</span>
+                  <input type='number' step='0.01' min='0' placeholder='0.00' value={form.cost} onChange={e=>setForm(p=>({...p,cost:e.target.value}))} style={{...inp,paddingLeft:'24px'}} />
                 </div>
               </div>
               <div><label style={lbl}>Notes</label><input type='text' placeholder='Optional' value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} style={inp} /></div>
