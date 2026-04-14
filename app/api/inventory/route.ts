@@ -34,6 +34,7 @@ function rowToObj(r, i) {
     name:         r[1]  || '',
     vialSize:     getVialSize(r),
     quantity:     getQty(r),
+    unitCost:     r[4]  || '',
     supplier:     r[5]  || '',
     purchaseDate: r[6]  || '',
     notes:        r[7]  || '',
@@ -64,7 +65,7 @@ export async function POST(req) {
         spreadsheetId: sid, range: 'Inventory!A:L', valueInputOption: 'RAW',
         requestBody: { values: [[
           item.itemType||'Peptide', item.name||'', item.vialSize||'', item.quantity||'0',
-          '', item.supplier||'', item.purchaseDate||'', item.notes||'',
+          item.unitCost||'', item.supplier||', item.purchaseDate||'', item.notes||'',
           new Date().toISOString().split('T')[0],
           item.priceStandard||'', item.priceFnF||'', item.reorderPoint||'',
         ]] },

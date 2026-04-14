@@ -6,7 +6,7 @@ const th = { textAlign:'left', padding:'10px 14px', fontSize:'11px', fontWeight:
 const td = { padding:'10px 14px', fontSize:'13px', color:'#d1d5db', borderBottom:'1px solid #1a1a1a', verticalAlign:'middle' };
 const inp = { width:'100%', background:'#0f0f0f', border:'1px solid #2a2a2a', borderRadius:'7px', padding:'9px 11px', color:'#fff', fontSize:'13px', outline:'none', boxSizing:'border-box' };
 const lbl = { display:'block', color:'#6b7280', fontSize:'11px', fontWeight:600, marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.06em' };
-const EMPTY = { itemType:'Peptide', name:'', vialSize:'', quantity:'0', supplier:'', purchaseDate:'', notes:'', priceStandard:'', priceFnF:'', reorderPoint:'' };
+const EMPTY = { itemType:'Peptide', name:'', vialSize:'', quantity:'0', unitCost:'', supplier:'', purchaseDate:'', notes:'', priceStandard:'', priceFnF:'', reorderPoint:'' };
 const TYPES = ['Peptide','Supplement','Equipment','Supplies','Other'];
 
 const ADJ_TYPES = [
@@ -77,7 +77,7 @@ export default function InventoryPage() {
   const openAdd = () => { setForm({...EMPTY, purchaseDate:new Date().toISOString().split('T')[0]}); setEditIdx(null); setShowEdit(true); };
   const openEdit = (item) => {
     setForm({ itemType:item.itemType||'Peptide', name:item.name||'', vialSize:item.vialSize||'',
-      quantity:item.quantity||'0', supplier:item.supplier||'',
+      quantity:item.quantity||'0', unitCost:item.unitCost||'', supplier:item.supplier||',
       purchaseDate:item.purchaseDate||'', notes:item.notes||'', createdDate:item.createdDate||'',
       priceStandard:item.priceStandard||'', priceFnF:item.priceFnF||'',
       reorderPoint:item.reorderPoint||'' });
@@ -135,7 +135,7 @@ export default function InventoryPage() {
         :(
           <table style={{width:'100%',borderCollapse:'collapse',minWidth:'700px'}}>
             <thead><tr>
-              {['Item','Qty','Standard $','F&F $','Reorder At',''].map(h=><th key={h} style={th}>{h}</th>)}
+              {['Item','Qty','Standard $','F&F $','Unit Cost $','Reorder At',''].map(h=><th key={h} style={th}>{h}</th>)}
             </tr></thead>
             <tbody>
               {filtered.map((item,i)=>(
@@ -152,6 +152,7 @@ export default function InventoryPage() {
                   </td>
                   <td style={td}><PriceCell val={item.priceStandard} color='#34d399'/></td>
                   <td style={td}><PriceCell val={item.priceFnF} color='#a78bfa'/></td>
+                  <td style={td}><PriceCell val={item.unitCost} color='#fbbf24'/></td>
                   <td style={{...td,color:'#6b7280'}}>
                     {item.reorderPoint && parseInt(item.quantity) <= parseInt(item.reorderPoint)
                       ? <span style={{color:'#f87171',fontWeight:700}}>⚠ {item.reorderPoint}</span>
@@ -248,6 +249,7 @@ export default function InventoryPage() {
               <div><label style={lbl}>Reorder Point</label><input type='number' min='0' placeholder='e.g. 5' value={form.reorderPoint} onChange={f('reorderPoint')} style={inp}/></div>
               <div><label style={lbl}>Standard Price ($)</label><div style={{position:'relative'}}><span style={{position:'absolute',left:'9px',top:'50%',transform:'translateY(-50%)',color:'#4b5563'}}>$</span><input type='number' step='0.01' min='0' placeholder='0' value={form.priceStandard} onChange={f('priceStandard')} style={{...inp,paddingLeft:'22px'}}/></div></div>
               <div><label style={lbl}>F&amp;F Price ($)</label><div style={{position:'relative'}}><span style={{position:'absolute',left:'9px',top:'50%',transform:'translateY(-50%)',color:'#4b5563'}}>$</span><input type='number' step='0.01' min='0' placeholder='0' value={form.priceFnF} onChange={f('priceFnF')} style={{...inp,paddingLeft:'22px'}}/></div></div>
+              <div><label style={lbl}>Unit Cost ($)</label><div style={{position:'relative'}}><span style={{position:'absolute',left:'9px',top:'50%',transform:'translateY(-50%)',color:'#4b5563'}}>$</span><input type='number' step='0.01' min='0' placeholder='0' value={form.unitCost} onChange={f('unitCost')} style={{...inp,paddingLeft:'22px'}}/></div></div>
 
               <div style={{borderTop:'1px solid #2a2a2a',paddingTop:'10px',marginTop:'2px'}}><label style={lbl}>Supplier</label><input type='text' placeholder='Supplier name' value={form.supplier} onChange={f('supplier')} style={inp}/></div>
               <div><label style={lbl}>Purchase Date</label><input type='date' value={form.purchaseDate} onChange={f('purchaseDate')} style={{...inp,colorScheme:'dark'}}/></div>
