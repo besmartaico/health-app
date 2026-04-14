@@ -44,6 +44,99 @@ function RichTextArea({ value, onChange, placeholder, minHeight = '160px', id })
       <div style={{fontSize:'10px',color:'#374151',marginTop:'3px',display:'flex',gap:'12px',flexWrap:'wrap'}}>
         <span>**bold**</span><span>*italic*</span><span>• bullet</span><span>## heading</span>
       </div>
+      {/* ── GENERATE PLAN MODAL ── */}
+      {showPlanModal&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:300,padding:'16px'}}>
+          <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'20px',width:'100%',maxWidth:'640px',maxHeight:'92vh',overflowY:'auto',boxShadow:'0 32px 80px rgba(0,0,0,0.6)'}}>
+            {/* Header */}
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'24px 28px 16px',borderBottom:'1px solid #2a2a2a',position:'sticky',top:0,background:'#1a1a1a',borderRadius:'20px 20px 0 0',zIndex:1}}>
+              <div>
+                <h2 style={{color:'#fff',fontSize:'18px',fontWeight:800,margin:'0 0 2px'}}>Generate Patient Plan</h2>
+                <p style={{color:'#4b5563',fontSize:'12px',margin:0}}>{selected} · Edit any field before sending</p>
+              </div>
+              <button onClick={()=>{setShowPlanModal(false);setSendResult('');}} style={{background:'transparent',border:'none',color:'#6b7280',fontSize:'28px',cursor:'pointer',lineHeight:1,padding:'4px'}}>×</button>
+            </div>
+
+            <div style={{padding:'24px 28px'}}>
+              {/* Patient */}
+              <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid #2a2a2a',borderRadius:'12px',padding:'16px',marginBottom:'14px'}}>
+                <h3 style={{color:'#9ca3af',fontSize:'12px',fontWeight:700,margin:'0 0 12px',textTransform:'uppercase',letterSpacing:'0.07em'}}>Patient Details</h3>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px'}}>
+                  <div><label style={lbl}>Name *</label><input type='text' placeholder='Patient name' value={planPatient} onChange={e=>setPlanPatient(e.target.value)} style={inp} autoFocus/></div>
+                  <div><label style={lbl}>Email *</label><input type='email' placeholder='patient@email.com' value={planEmail} onChange={e=>setPlanEmail(e.target.value)} style={inp}/></div>
+                </div>
+              </div>
+
+              {/* Dosing */}
+              <div style={{background:'rgba(99,102,241,0.04)',border:'1px solid rgba(99,102,241,0.15)',borderRadius:'12px',padding:'16px',marginBottom:'14px'}}>
+                <h3 style={{color:'#818cf8',fontSize:'12px',fontWeight:700,margin:'0 0 12px',textTransform:'uppercase',letterSpacing:'0.07em'}}>Dosing</h3>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px'}}>
+                  <div>
+                    <label style={lbl}>Frequency</label>
+                    <select value={planFreq} onChange={e=>setPlanFreq(e.target.value)} style={{...inp,color:planFreq?'#fff':'#4b5563'}}>
+                      <option value=''>Select...</option>
+                      {FREQS.map(f=><option key={f} value={f}>{f}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={lbl}>Dose (units)</label>
+                    <div style={{position:'relative'}}>
+                      <input type='number' step='0.5' placeholder='e.g. 10' value={planDoseUnits} onChange={e=>setPlanDoseUnits(e.target.value)} style={{...inp,paddingRight:'46px'}}/>
+                      <span style={{position:'absolute',right:'10px',top:'50%',transform:'translateY(-50%)',color:'#4b5563',fontSize:'11px',pointerEvents:'none'}}>units</span>
+                    </div>
+                    {calcMcg(planDoseUnits,planVialMg,planReconMl)&&<div style={{marginTop:'3px',fontSize:'11px',color:'#818cf8'}}>{calcMcg(planDoseUnits,planVialMg,planReconMl)} mcg</div>}
+                  </div>
+                  <div><label style={lbl}>Vial Size (mg)</label><input type='number' placeholder='e.g. 10' value={planVialMg} onChange={e=>setPlanVialMg(e.target.value)} style={inp}/></div>
+                  <div><label style={lbl}>BAC Water (mL)</label><input type='number' step='0.1' value={planReconMl} onChange={e=>setPlanReconMl(e.target.value)} style={inp}/></div>
+                </div>
+              </div>
+
+              {/* Patient Instructions */}
+              <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid #2a2a2a',borderRadius:'12px',padding:'16px',marginBottom:'14px'}}>
+                <label style={{...lbl,marginBottom:'8px',fontSize:'12px'}}>Patient Instructions</label>
+                <textarea value={planText} onChange={e=>setPlanText(e.target.value)} placeholder='Patient instructions...' style={{...inp,minHeight:'100px',resize:'vertical',fontFamily:'monospace',fontSize:'12px',lineHeight:1.6}}/>
+              </div>
+
+              {/* Side Effects */}
+              <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid #2a2a2a',borderRadius:'12px',padding:'16px',marginBottom:'14px'}}>
+                <label style={{...lbl,marginBottom:'8px',fontSize:'12px'}}>Side Effects &amp; Notes</label>
+                <textarea value={planSideEffects} onChange={e=>setPlanSideEffects(e.target.value)} placeholder='Side effects and notes...' style={{...inp,minHeight:'80px',resize:'vertical',fontFamily:'monospace',fontSize:'12px',lineHeight:1.6}}/>
+              </div>
+
+              {/* Storage & Extra Notes */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'20px'}}>
+                <div><label style={lbl}>Storage</label><input type='text' value={planStorage} onChange={e=>setPlanStorage(e.target.value)} placeholder='Storage instructions...' style={inp}/></div>
+                <div><label style={lbl}>Extra Notes for Patient</label><input type='text' value={planNotes} onChange={e=>setPlanNotes(e.target.value)} placeholder='Specific to this patient...' style={inp}/></div>
+              </div>
+
+              {/* Send button */}
+              {sendResult===''&&(
+                <button onClick={sendPlan} disabled={sending||!planPatient||!planEmail}
+                  style={{width:'100%',background:planPatient&&planEmail&&!sending?'#7b1c2e':'#2d0e18',color:planPatient&&planEmail&&!sending?'#fff':'#5a2030',border:'none',borderRadius:'10px',padding:'14px',fontSize:'15px',fontWeight:700,cursor:planPatient&&planEmail&&!sending?'pointer':'not-allowed'}}>
+                  {sending?'Sending...':'📧 Send Plan to Patient'}
+                </button>
+              )}
+              {sendResult.startsWith('sent')&&(
+                <div style={{textAlign:'center',padding:'24px'}}>
+                  <div style={{fontSize:'40px',marginBottom:'10px'}}>✅</div>
+                  <div style={{color:'#34d399',fontWeight:700,fontSize:'16px',marginBottom:'6px'}}>Plan sent successfully!</div>
+                  <div style={{color:'#6b7280',fontSize:'13px',marginBottom:'20px'}}>{planEmail}</div>
+                  <div style={{display:'flex',gap:'10px',justifyContent:'center'}}>
+                    <button onClick={()=>{setPlanPatient('');setPlanEmail('');setSendResult('');}} style={{background:'#242424',color:'#9ca3af',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'10px 20px',fontSize:'13px',cursor:'pointer'}}>Send Another</button>
+                    <button onClick={()=>{setShowPlanModal(false);setSendResult('');}} style={{background:'#7b1c2e',color:'#fff',border:'none',borderRadius:'8px',padding:'10px 20px',fontSize:'13px',fontWeight:600,cursor:'pointer'}}>Done</button>
+                  </div>
+                </div>
+              )}
+              {sendResult.startsWith('error')&&(
+                <div>
+                  <div style={{background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'8px',padding:'12px',marginBottom:'12px',color:'#f87171',fontSize:'13px'}}>{sendResult.replace('error:','⚠ ')}</div>
+                  <button onClick={sendPlan} disabled={sending} style={{width:'100%',background:'#7b1c2e',color:'#fff',border:'none',borderRadius:'10px',padding:'13px',fontSize:'14px',fontWeight:700,cursor:'pointer'}}>Retry</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -98,6 +191,20 @@ export default function InstructionsPage() {
   const [toastErr, setToastErr] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
   const [unsaved, setUnsaved] = useState(new Set());
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  // Plan modal fields — pre-filled from peptide defaults, all editable
+  const [planPatient, setPlanPatient] = useState('');
+  const [planEmail, setPlanEmail] = useState('');
+  const [planVialMg, setPlanVialMg] = useState('');
+  const [planReconMl, setPlanReconMl] = useState('2');
+  const [planDoseUnits, setPlanDoseUnits] = useState('');
+  const [planFreq, setPlanFreq] = useState('');
+  const [planText, setPlanText] = useState('');
+  const [planSideEffects, setPlanSideEffects] = useState('');
+  const [planStorage, setPlanStorage] = useState('');
+  const [planNotes, setPlanNotes] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sendResult, setSendResult] = useState('');
   // Patient plan fields
   const [planPatient, setPlanPatient] = useState('');
   const [planEmail, setPlanEmail] = useState('');
@@ -168,6 +275,22 @@ export default function InstructionsPage() {
   const selectPeptide = (name) => setSelected(name);
 
   const currentInstr = instructions[selected] || {};
+
+  const openPlanModal = () => {
+    const instr = instructions[selected] || {};
+    setPlanVialMg(instr.vialMg || '');
+    setPlanReconMl(instr.reconMl || '2');
+    setPlanDoseUnits(instr.defaultDose || '');
+    setPlanFreq(instr.defaultFreq || '');
+    setPlanText(instr.text || '');
+    setPlanSideEffects(instr.sideEffects || '');
+    setPlanStorage(instr.storage || '');
+    setPlanNotes('');
+    setPlanPatient('');
+    setPlanEmail('');
+    setSendResult('');
+    setShowPlanModal(true);
+  };
   const setField = (field, val) => {
     setInstructions(prev => {
       const updated = { ...(prev[selected]||{peptide:selected}), [field]: val };
@@ -247,6 +370,33 @@ export default function InstructionsPage() {
     setSending(false);
   };
 
+  const calcMcg = (units, vialMg, reconMl) => {
+    const mg = parseFloat(vialMg), ml = parseFloat(reconMl), u = parseFloat(units);
+    if (!mg||!ml||!u) return null;
+    return ((u/100)*(mg*1000/ml)).toFixed(0);
+  };
+
+  const sendPlan = async () => {
+    if (!planPatient||!planEmail) return;
+    setSending(true); setSendResult('');
+    try {
+      const res = await fetch('/api/send-plan', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+        patient: planPatient, email: planEmail, peptide: selected,
+        frequency: planFreq,
+        dose: planDoseUnits ? planDoseUnits+' units'+(calcMcg(planDoseUnits,planVialMg,planReconMl)?' ('+calcMcg(planDoseUnits,planVialMg,planReconMl)+' mcg)':'') : '',
+        vialMg: planVialMg, reconMl: planReconMl,
+        units: planDoseUnits, mcg: calcMcg(planDoseUnits,planVialMg,planReconMl)||'',
+        notes: planNotes,
+        instructions: planText,
+        sideEffects: planSideEffects,
+        storage: planStorage,
+      })});
+      const d = await res.json();
+      setSendResult(d.success ? 'sent' : 'error:' + (d.error||'Error'));
+    } catch(e) { setSendResult('error:'+e); }
+    setSending(false);
+  };
+
   const visiblePeptides = peptides.filter(n => !hiddenPeptides.has(n));
   const planInstr = instructions[planPeptide] || {};
   const planMcg = calcMcg(planDoseUnits, planVialMg, planReconMl);
@@ -313,8 +463,9 @@ export default function InstructionsPage() {
                 <h1 style={{color:'#fff',fontSize:'22px',fontWeight:800,margin:'0 0 4px'}}>{selected}</h1>
                 <p style={{color:'#6b7280',fontSize:'13px',margin:0}}>Default dosing &amp; patient instructions</p>
               </div>
-              <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+              <div style={{display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>
                 {unsaved.has(selected)&&<span style={{fontSize:'10px',color:'#fbbf24',fontWeight:700,background:'rgba(251,191,36,0.1)',border:'1px solid rgba(251,191,36,0.3)',borderRadius:'4px',padding:'2px 6px'}}>UNSAVED</span>}
+                <button onClick={openPlanModal} style={{background:'rgba(16,185,129,0.1)',color:'#34d399',border:'1px solid rgba(16,185,129,0.3)',borderRadius:'9px',padding:'10px 18px',fontSize:'13px',fontWeight:600,cursor:'pointer',whiteSpace:'nowrap'}}>📧 Generate Plan</button>
                 <button onClick={saveInstructions} disabled={saving} style={{background:saving?'#2d0e18':'#7b1c2e',color:saving?'#5a2030':'#fff',border:'none',borderRadius:'9px',padding:'10px 20px',fontSize:'13px',fontWeight:600,cursor:saving?'not-allowed':'pointer'}}>{saving?'Saving...':'Save'}</button>
               </div>
             </div>
