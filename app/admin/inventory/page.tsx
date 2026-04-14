@@ -112,6 +112,7 @@ export default function InventoryPage() {
       if(d.error) showT('Error: '+d.error,true);
       else { showT(editIdx!==null?'Updated!':'Added!',false); setShowForm(false); setForm({...EMPTY}); setEditIdx(null); await load(); }
     } catch(e) { showT('Error: '+e,true); }
+    await load();
     setSaving(false);
   };
 

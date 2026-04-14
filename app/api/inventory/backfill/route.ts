@@ -6,81 +6,68 @@ function getSheets() {
   const auth = new google.auth.GoogleAuth({
     credentials: {
       client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g,'\n'),
+      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
     },
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
   return google.sheets({ version: 'v4', auth });
 }
-const SID = () => process.env.GOOGLE_SHEETS_CRM_ID;
 
 export async function POST() {
   try {
     const sheets = getSheets();
+    const sid = process.env.GOOGLE_SHEETS_CRM_ID;
 
-    // Get all tab names
-    const meta = await sheets.spreadsheets.get({ spreadsheetId: SID() });
-    const tabNames = meta.data.sheets?.map(s => s.properties?.title) || [];
-    const purchTab = tabNames.find(t => /purchase/i.test(t)) || 'Purchases';
-    const salesTab = tabNames.find(t => /sale/i.test(t)) || 'Sales';
-    const invTab   = tabNames.find(t => /inventor/i.test(t)) || 'Inventory';
+    // Read existing inventory rows (all cols A:L) to preserve everything except qty
+    const invRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: sid,
+      range: 'Inventory!A2:L',
+    });
+    const existingRows = invRes.data.values || [];
 
-    // 1. Aggregate purchases: item -> total qty bought
-    const purchRes = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: `${purchTab}!A1:I` });
+    // Read purchases to compute quantities per peptide name
+    const purchRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: sid,
+      range: 'Purchases!A2:F',
+    });
     const purchRows = purchRes.data.values || [];
-    const bought: Record<string, number> = {};
-    for (const row of purchRows.slice(1)) {
-      const item = row[2]?.trim();
-      const qty  = parseFloat(row[3]) || 0;
-      if (item && qty > 0) bought[item] = (bought[item] || 0) + qty;
+
+    // Tally quantities from purchases: col B = item name, col C = quantity
+    const qtys = {};
+    for (const r of purchRows) {
+      const name = (r[1] || '').trim();
+      const qty = parseInt(r[2]) || 0;
+      if (name) qtys[name] = (qtys[name] || 0) + qty;
     }
 
-    // 2. Aggregate sales: item -> total qty sold
-    const salesRes = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: `${salesTab}!A1:E` });
-    const salesRows = salesRes.data.values || [];
-    const sold: Record<string, number> = {};
-    for (const row of salesRows.slice(1)) {
-      const linesJson = row[2] || '[]';
-      try {
-        const lines = JSON.parse(linesJson);
-        for (const line of lines) {
-          const item = line.product?.trim();
-          const qty  = parseFloat(line.qty) || 0;
-          if (item && qty > 0) sold[item] = (sold[item] || 0) + qty;
-        }
-      } catch {}
+    // For each existing inventory row, update ONLY col D (quantity) if we have purchase data
+    // All other columns are left completely untouched
+    const updates = [];
+    for (let i = 0; i < existingRows.length; i++) {
+      const row = existingRows[i];
+      const name = (row[1] || '').trim(); // col B = peptide name
+      if (name && qtys[name] !== undefined) {
+        const rowNum = i + 2; // +1 for header, +1 for 1-index
+        updates.push({
+          range: `Inventory!D${rowNum}`,
+          values: [[String(qtys[name])]],
+        });
+      }
     }
 
-    // 3. Compute net = bought - sold (floor at 0)
-    const allItems = new Set([...Object.keys(bought), ...Object.keys(sold)]);
-    const netInventory = Array.from(allItems).map(name => ({
-      name,
-      bought: bought[name] || 0,
-      sold:   sold[name] || 0,
-      net:    Math.max(0, (bought[name] || 0) - (sold[name] || 0)),
-    })).filter(i => i.bought > 0); // only items we've purchased
-
-    if (netInventory.length === 0) {
-      return NextResponse.json({ success: false, message: 'No purchases found', tabNames, purchRowCount: purchRows.length, salesRowCount: salesRows.length });
+    // Batch update only the quantity cells
+    if (updates.length > 0) {
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: sid,
+        requestBody: {
+          valueInputOption: 'RAW',
+          data: updates,
+        },
+      });
     }
 
-    // 4. Clear and rewrite Inventory sheet
-    await sheets.spreadsheets.values.clear({ spreadsheetId: SID(), range: `${invTab}!A2:Z` });
-
-    const invRows = netInventory.map(i => ['Peptide', i.name, String(i.net), 'vials', '', '']);
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SID(),
-      range: `${invTab}!A2`,
-      valueInputOption: 'RAW',
-      requestBody: { values: invRows },
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: `Synced ${netInventory.length} items: ${purchRows.length - 1} purchases, ${salesRows.length - 1} sales`,
-      items: netInventory,
-    });
-  } catch (e: any) {
-    return NextResponse.json({ success: false, error: e?.message || String(e) }, { status: 500 });
+    return NextResponse.json({ success: true, updated: updates.length });
+  } catch (e) {
+    return NextResponse.json({ success: false, error: String(e) }, { status: 500 });
   }
 }
