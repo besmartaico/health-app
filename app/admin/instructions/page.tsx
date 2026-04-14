@@ -88,6 +88,7 @@ export default function InstructionsPage() {
   const [toast, setToast] = useState('');
   const [toastErr, setToastErr] = useState(false);
   const [unsaved, setUnsaved] = useState(new Set());
+  const [loadingData, setLoadingData] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [planPatient, setPlanPatient] = useState('');
   const [planEmail, setPlanEmail] = useState('');
@@ -102,26 +103,33 @@ export default function InstructionsPage() {
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState('');
 
-  useEffect(() => {
-    fetch('/api/purchases').then(r=>r.json()).then(d => {
-      const names = [...new Set((d.purchases||[]).map(p=>p.item).filter(Boolean))].sort();
+  const loadInstructions = async () => {
+    setLoadingData(true);
+    try {
+      const [purchRes, instrRes] = await Promise.all([
+        fetch('/api/purchases').then(r=>r.json()),
+        fetch('/api/instructions').then(r=>r.json()),
+      ]);
+      const names = [...new Set((purchRes.purchases||[]).map(p=>p.item).filter(Boolean))].sort();
       setPeptides(names);
-      if (names.length > 0) setSelected(names[0]);
-    });
-    fetch('/api/instructions').then(r=>r.json()).then(d => {
-      // API now returns {instructions: {peptideName: {text, sideEffects, storage, vialMg, reconMl, defaultDose, defaultFreq}}}
-      const raw = d.instructions || {};
+      const raw = instrRes.instructions || {};
       const map = {};
       Object.entries(raw).forEach(([peptide, val]) => {
         if (typeof val === 'object' && val !== null) {
           map[peptide] = { peptide, ...val };
         } else if (typeof val === 'string') {
-          // Legacy: plain text only
           map[peptide] = { peptide, text: val };
         }
       });
       setInstructions(map);
-    });
+      setUnsaved(new Set()); // clear unsaved markers after fresh load
+    } catch(e) { console.error('load failed:', e); }
+    setLoadingData(false);
+  };
+
+  useEffect(() => {
+    loadInstructions();
+    if (peptides.length === 0) {} // will be set above
     try {
       const h = JSON.parse(localStorage.getItem('hiddenPeptides')||'[]');
       setHiddenPeptides(new Set(h));
@@ -270,6 +278,7 @@ export default function InstructionsPage() {
               </div>
               <div style={{display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>
                 {unsaved.has(selected)&&<span style={{fontSize:'10px',color:'#fbbf24',fontWeight:700,background:'rgba(251,191,36,0.1)',border:'1px solid rgba(251,191,36,0.3)',borderRadius:'4px',padding:'2px 6px'}}>UNSAVED</span>}
+                <button onClick={loadInstructions} disabled={loadingData} title='Reload data from Google Sheet' style={{background:'rgba(255,255,255,0.04)',color:loadingData?'#374151':'#6b7280',border:'1px solid #2a2a2a',borderRadius:'9px',padding:'10px 14px',fontSize:'13px',cursor:loadingData?'not-allowed':'pointer'}}>{loadingData?'⟳':'⟳'}</button>
                 <button onClick={openPlanModal} style={{background:'rgba(16,185,129,0.1)',color:'#34d399',border:'1px solid rgba(16,185,129,0.3)',borderRadius:'9px',padding:'10px 18px',fontSize:'13px',fontWeight:600,cursor:'pointer',whiteSpace:'nowrap'}}>📧 Generate Plan</button>
                 <button onClick={saveInstructions} disabled={saving} style={{background:saving?'#2d0e18':'#7b1c2e',color:saving?'#5a2030':'#fff',border:'none',borderRadius:'9px',padding:'10px 20px',fontSize:'13px',fontWeight:600,cursor:saving?'not-allowed':'pointer'}}>{saving?'Saving...':'Save'}</button>
               </div>
