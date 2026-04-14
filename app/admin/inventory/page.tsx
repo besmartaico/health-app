@@ -38,6 +38,7 @@ export default function InventoryPage() {
   const [form, setForm] = useState({...EMPTY});
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
+  const [hoveredId, setHoveredId] = useState(null);
   const [toastErr, setToastErr] = useState(false);
 
   useEffect(() => { load(); }, []);
@@ -139,10 +140,19 @@ export default function InventoryPage() {
             </tr></thead>
             <tbody>
               {filtered.map((item,i)=>(
-                <tr key={i} onMouseOver={e=>e.currentTarget.style.background='#1f1f1f'} onMouseOut={e=>e.currentTarget.style.background='transparent'}>
-                  <td style={{...td,color:'#fff',fontWeight:600,maxWidth:'220px'}}>
-                    <div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</div>
+                <tr key={i} onMouseOver={e=>{e.currentTarget.style.background='#1f1f1f';setHoveredId(item.id);}} onMouseOut={e=>{e.currentTarget.style.background='transparent';setHoveredId(null);}}>
+                  <td style={{...td,color:'#fff',fontWeight:600,maxWidth:'220px',position:'relative'}}>
+                    <div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                      {item.name}
+                      {item.notes&&<span style={{marginLeft:'6px',fontSize:'11px',color:'#4b5563',cursor:'default'}}>📋</span>}
+                    </div>
                     <div style={{fontSize:'10px',color:'#4b5563',marginTop:'1px'}}>{item.itemType}{item.vialSize?' · '+item.vialSize:''}</div>
+                    {item.notes&&hoveredId===item.id&&(
+                      <div style={{position:'absolute',left:0,top:'100%',marginTop:'4px',background:'#0f0f0f',border:'1px solid #3a3a3a',borderRadius:'8px',padding:'8px 12px',fontSize:'12px',color:'#d1d5db',zIndex:50,maxWidth:'280px',whiteSpace:'normal',lineHeight:1.5,boxShadow:'0 8px 24px rgba(0,0,0,0.6)',pointerEvents:'none'}}>
+                        <div style={{color:'#6b7280',fontSize:'10px',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>Notes</div>
+                        {item.notes}
+                      </div>
+                    )}
                   </td>
                   <td style={td}>
                     <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
