@@ -132,6 +132,7 @@ export default function InstructionsPage() {
   const [toast, setToast] = useState('');
   const [toastErr, setToastErr] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
+  const [unsaved, setUnsaved] = useState(new Set());
   const [planPatient, setPlanPatient] = useState('');
   const [planEmail, setPlanEmail] = useState('');
   const [planPeptide, setPlanPeptide] = useState('');
@@ -150,8 +151,29 @@ export default function InstructionsPage() {
       if (names.length > 0) setSelected(names[0]);
     });
     fetch('/api/instructions').then(r=>r.json()).then(d => {
+      const raw = d.instructions || {};
       const map = {};
-      (d.instructions||[]).forEach(i => { map[i.peptide] = i; });
+      // Handle both array format [{peptide,text,...}] and object format {"name":"text or json"}
+      if (Array.isArray(raw)) {
+        raw.forEach(i => { map[i.peptide] = i; });
+      } else {
+        Object.entries(raw).forEach(([peptide, val]) => {
+          if (typeof val === 'string') {
+            // Try to parse as JSON first (new multi-field format stored as string)
+            try { map[peptide] = { peptide, ...JSON.parse(val) }; }
+            catch { map[peptide] = { peptide, text: val }; } // plain text (old format)
+          } else if (typeof val === 'object' && val) {
+            map[peptide] = { peptide, ...val };
+          }
+        });
+      }
+      // Merge any localStorage drafts on top (drafts win over sheet for unsaved changes)
+      try {
+        const drafts = JSON.parse(localStorage.getItem('instr_drafts') || '{}');
+        Object.entries(drafts).forEach(([peptide, data]) => {
+          map[peptide] = { ...(map[peptide]||{peptide}), ...data, _isDraft: true };
+        });
+      } catch {}
       setInstructions(map);
     });
     try {
@@ -183,7 +205,20 @@ export default function InstructionsPage() {
   };
 
   const currentInstr = instructions[selected] || {};
-  const setField = (field, val) => setInstructions(prev => ({ ...prev, [selected]: { ...(prev[selected]||{peptide:selected}), [field]: val } }));
+  const setField = (field, val) => {
+    setInstructions(prev => {
+      const updated = { ...(prev[selected]||{peptide:selected}), [field]: val };
+      const next = { ...prev, [selected]: updated };
+      // Auto-save draft to localStorage immediately
+      try {
+        const drafts = JSON.parse(localStorage.getItem('instr_drafts') || '{}');
+        drafts[selected] = { ...drafts[selected], [field]: val };
+        localStorage.setItem('instr_drafts', JSON.stringify(drafts));
+      } catch {}
+      return next;
+    });
+    setUnsaved(prev => new Set([...prev, selected]));
+  };
 
   const calcMcgFromUnits = (units, vialMg, reconMl) => {
     const mg = parseFloat(vialMg), ml = parseFloat(reconMl), u = parseFloat(units);
@@ -288,7 +323,10 @@ export default function InstructionsPage() {
           <div style={{maxWidth:'800px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'24px',flexWrap:'wrap',gap:'12px'}}>
               <div><h1 style={{color:'#fff',fontSize:'22px',fontWeight:800,margin:'0 0 4px'}}>{selected}</h1><p style={{color:'#6b7280',fontSize:'13px',margin:0}}>Reconstitution &amp; patient instructions</p></div>
-              <button onClick={saveInstructions} disabled={saving} style={{background:saving?'#2d0e18':'#7b1c2e',color:saving?'#5a2030':'#fff',border:'none',borderRadius:'9px',padding:'10px 20px',fontSize:'13px',fontWeight:600,cursor:saving?'not-allowed':'pointer'}}>{saving?'Saving...':'Save'}</button>
+              <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                {unsaved.has(selected)&&<span style={{fontSize:'10px',color:'#fbbf24',fontWeight:700,background:'rgba(251,191,36,0.1)',border:'1px solid rgba(251,191,36,0.3)',borderRadius:'4px',padding:'2px 6px'}}>UNSAVED</span>}
+                <button onClick={saveInstructions} disabled={saving} style={{background:saving?'#2d0e18':'#7b1c2e',color:saving?'#5a2030':'#fff',border:'none',borderRadius:'9px',padding:'10px 20px',fontSize:'13px',fontWeight:600,cursor:saving?'not-allowed':'pointer'}}>{saving?'Saving...':'Save'}</button>
+              </div>
             </div>
 
             {/* Reconstitution */}
