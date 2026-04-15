@@ -146,7 +146,13 @@ export default function InventoryPage() {
                       {item.name}
                       {item.notes&&<span style={{marginLeft:'6px',fontSize:'11px',color:'#4b5563',cursor:'default'}}>📋</span>}
                     </div>
-                    <div style={{fontSize:'10px',color:'#4b5563',marginTop:'1px'}}>{item.itemType}{item.vialSize?' · '+item.vialSize:''}</div>
+                    <div style={{marginTop:'3px',display:'flex',alignItems:'center',gap:'5px'}}>
+                      <span style={{fontSize:'9px',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',padding:'1px 6px',borderRadius:'4px',
+                        background:item.itemType==='Peptide'?'rgba(26,79,168,0.18)':item.itemType==='Supplement'?'rgba(52,211,153,0.12)':item.itemType==='Equipment'?'rgba(167,139,250,0.12)':item.itemType==='Supplies'?'rgba(251,191,36,0.12)':'rgba(107,114,128,0.12)',
+                        color:item.itemType==='Peptide'?'#6b9ee8':item.itemType==='Supplement'?'#34d399':item.itemType==='Equipment'?'#a78bfa':item.itemType==='Supplies'?'#fbbf24':'#6b7280'
+                      }}>{item.itemType}</span>
+                      {item.vialSize&&<span style={{fontSize:'10px',color:'#4b5563'}}>{item.vialSize}</span>}
+                    </div>
                     {item.notes&&hoveredId===item.id&&(
                       <div style={{position:'absolute',left:0,top:'100%',marginTop:'4px',background:'#0f0f0f',border:'1px solid #3a3a3a',borderRadius:'8px',padding:'8px 12px',fontSize:'12px',color:'#d1d5db',zIndex:50,maxWidth:'280px',whiteSpace:'normal',lineHeight:1.5,boxShadow:'0 8px 24px rgba(0,0,0,0.6)',pointerEvents:'none'}}>
                         <div style={{color:'#6b7280',fontSize:'10px',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>Notes</div>
