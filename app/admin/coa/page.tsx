@@ -71,13 +71,13 @@ export default function COAPage() {
           <h1 style={{fontSize:'22px',fontWeight:800,color:'#fff',margin:'0 0 4px'}}>COA Document Library</h1>
           <p style={{color:'#6b7280',fontSize:'13px',margin:0}}>Certificates of Analysis — {docs.length} documents on file</p>
         </div>
-        <button onClick={()=>setShowUpload(true)} style={{background:'#7b1c2e',color:'#fff',border:'none',borderRadius:'9px',padding:'10px 20px',fontSize:'13px',fontWeight:600,cursor:'pointer'}}>+ Upload COA</button>
+        <button onClick={()=>setShowUpload(true)} style={{background:'#1a4fa8',color:'#fff',border:'none',borderRadius:'9px',padding:'10px 20px',fontSize:'13px',fontWeight:600,cursor:'pointer'}}>+ Upload COA</button>
       </div>
 
       {/* Filters */}
       <div style={{display:'flex',gap:'8px',flexWrap:'wrap',marginBottom:'14px'}}>
         {['All',...PEPTIDES].map(p=>(
-          <button key={p} onClick={()=>setFilterPeptide(p)} style={{background:filterPeptide===p?'rgba(123,28,46,0.2)':'#1a1a1a',color:filterPeptide===p?'#f87171':'#6b7280',border:'1px solid '+(filterPeptide===p?'rgba(123,28,46,0.35)':'#2a2a2a'),borderRadius:'20px',padding:'5px 13px',fontSize:'12px',cursor:'pointer',fontWeight:filterPeptide===p?600:400}}>{p}</button>
+          <button key={p} onClick={()=>setFilterPeptide(p)} style={{background:filterPeptide===p?'rgba(26,79,168,0.2)':'#1a1a1a',color:filterPeptide===p?'#f87171':'#6b7280',border:'1px solid '+(filterPeptide===p?'rgba(26,79,168,0.35)':'#2a2a2a'),borderRadius:'20px',padding:'5px 13px',fontSize:'12px',cursor:'pointer',fontWeight:filterPeptide===p?600:400}}>{p}</button>
         ))}
       </div>
       <div style={{marginBottom:'20px'}}>
@@ -90,7 +90,7 @@ export default function COAPage() {
           <div style={{fontSize:'48px',marginBottom:'16px'}}>🔬</div>
           <div style={{color:'#fff',fontWeight:700,fontSize:'17px',marginBottom:'8px'}}>{docs.length===0?'No COAs yet':'No matching documents'}</div>
           <div style={{color:'#4b5563',fontSize:'13px',marginBottom:'20px'}}>{docs.length===0?'Upload your first Certificate of Analysis to get started.':'Try a different filter.'}</div>
-          {docs.length===0&&<button onClick={()=>setShowUpload(true)} style={{background:'#7b1c2e',color:'#fff',border:'none',borderRadius:'9px',padding:'11px 22px',fontSize:'14px',fontWeight:600,cursor:'pointer'}}>+ Upload First COA</button>}
+          {docs.length===0&&<button onClick={()=>setShowUpload(true)} style={{background:'#1a4fa8',color:'#fff',border:'none',borderRadius:'9px',padding:'11px 22px',fontSize:'14px',fontWeight:600,cursor:'pointer'}}>+ Upload First COA</button>}
         </div>
       ):(
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:'14px'}}>
@@ -127,14 +127,14 @@ export default function COAPage() {
               <div><label style={{display:'block',color:'#6b7280',fontSize:'11px',fontWeight:600,marginBottom:'5px',textTransform:'uppercase',letterSpacing:'0.07em'}}>Purity (%)</label><input type='number' placeholder='e.g. 99.2' value={purity} onChange={e=>setPurity(e.target.value)} style={{width:'100%',background:'#0f0f0f',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'10px 13px',color:'#fff',fontSize:'14px',outline:'none',boxSizing:'border-box'}} /></div>
               <div><label style={{display:'block',color:'#6b7280',fontSize:'11px',fontWeight:600,marginBottom:'5px',textTransform:'uppercase',letterSpacing:'0.07em'}}>Notes</label><input type='text' placeholder='Lab name, additional info...' value={notes} onChange={e=>setNotes(e.target.value)} style={{width:'100%',background:'#0f0f0f',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'10px 13px',color:'#fff',fontSize:'14px',outline:'none',boxSizing:'border-box'}} /></div>
               <div><label style={{display:'block',color:'#6b7280',fontSize:'11px',fontWeight:600,marginBottom:'8px',textTransform:'uppercase',letterSpacing:'0.07em'}}>PDF Document</label>
-                <div onClick={()=>fileRef.current?.click()} style={{border:'2px dashed #2a2a2a',borderRadius:'10px',padding:'20px',textAlign:'center',cursor:'pointer',background:'rgba(255,255,255,0.01)'}} onMouseOver={e=>e.currentTarget.style.borderColor='#7b1c2e'} onMouseOut={e=>e.currentTarget.style.borderColor='#2a2a2a'}>
+                <div onClick={()=>fileRef.current?.click()} style={{border:'2px dashed #2a2a2a',borderRadius:'10px',padding:'20px',textAlign:'center',cursor:'pointer',background:'rgba(255,255,255,0.01)'}} onMouseOver={e=>e.currentTarget.style.borderColor='#1a4fa8'} onMouseOut={e=>e.currentTarget.style.borderColor='#2a2a2a'}>
                   {file?<div style={{color:'#34d399',fontSize:'13px',fontWeight:600}}>📄 {file.name}</div>:<div style={{color:'#4b5563',fontSize:'13px'}}>Click to upload PDF<br/><span style={{fontSize:'11px',color:'#374151'}}>PDF, max 10MB</span></div>}
                 </div>
                 <input ref={fileRef} type='file' accept='.pdf,.png,.jpg' onChange={e=>setFile(e.target.files[0])} style={{display:'none'}} />
               </div>
             </div>
             <div style={{display:'flex',gap:'10px',marginTop:'20px'}}>
-              <button onClick={upload} disabled={uploading||!batchNo.trim()} style={{flex:1,background:!uploading&&batchNo.trim()?'#7b1c2e':'#2d0e18',color:!uploading&&batchNo.trim()?'#fff':'#5a2030',border:'none',borderRadius:'10px',padding:'13px',fontSize:'14px',fontWeight:700,cursor:!uploading&&batchNo.trim()?'pointer':'not-allowed'}}>{uploading?'Uploading...':'Upload COA'}</button>
+              <button onClick={upload} disabled={uploading||!batchNo.trim()} style={{flex:1,background:!uploading&&batchNo.trim()?'#1a4fa8':'#0d2d6b',color:!uploading&&batchNo.trim()?'#fff':'#1a3a7a',border:'none',borderRadius:'10px',padding:'13px',fontSize:'14px',fontWeight:700,cursor:!uploading&&batchNo.trim()?'pointer':'not-allowed'}}>{uploading?'Uploading...':'Upload COA'}</button>
               <button onClick={()=>{setShowUpload(false);setBatchNo('');setTestDate('');setPurity('');setNotes('');setFile(null);}} style={{flex:1,background:'#242424',color:'#9ca3af',border:'1px solid #2a2a2a',borderRadius:'10px',padding:'13px',fontSize:'14px',cursor:'pointer'}}>Cancel</button>
             </div>
           </div>

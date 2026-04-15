@@ -82,7 +82,7 @@ export default function UsersPage() {
               {linkModal.url}
             </div>
             <div style={{display:'flex',gap:'10px'}}>
-              <button onClick={()=>copyLink(linkModal.url)} style={{flex:1,background:'#7b1c2e',color:'#fff',border:'none',borderRadius:'10px',padding:'12px',fontSize:'14px',fontWeight:700,cursor:'pointer'}}>{copyLabel}</button>
+              <button onClick={()=>copyLink(linkModal.url)} style={{flex:1,background:'#1a4fa8',color:'#fff',border:'none',borderRadius:'10px',padding:'12px',fontSize:'14px',fontWeight:700,cursor:'pointer'}}>{copyLabel}</button>
               <button onClick={()=>{setLinkModal(null);setCopyLabel('Copy Link');}} style={{flex:1,background:'#242424',color:'#9ca3af',border:'1px solid #2a2a2a',borderRadius:'10px',padding:'12px',fontSize:'14px',cursor:'pointer'}}>Close</button>
             </div>
           </div>
@@ -94,7 +94,7 @@ export default function UsersPage() {
           <h1 style={{fontSize:'22px',fontWeight:800,color:'#fff',margin:'0 0 4px'}}>Users</h1>
           <p style={{color:'#6b7280',fontSize:'13px',margin:0}}>{users.length} active · {invites.filter(i=>i.status==='pending').length} pending</p>
         </div>
-        <button onClick={()=>setShowInvite(true)} style={{background:'#7b1c2e',color:'#fff',border:'none',borderRadius:'9px',padding:'10px 20px',fontSize:'13px',fontWeight:600,cursor:'pointer'}}>+ Invite User</button>
+        <button onClick={()=>setShowInvite(true)} style={{background:'#1a4fa8',color:'#fff',border:'none',borderRadius:'9px',padding:'10px 20px',fontSize:'13px',fontWeight:600,cursor:'pointer'}}>+ Invite User</button>
       </div>
 
       {/* Active users */}
@@ -108,7 +108,7 @@ export default function UsersPage() {
                 <tr key={i} onMouseOver={e=>e.currentTarget.style.background='#1f1f1f'} onMouseOut={e=>e.currentTarget.style.background='transparent'}>
                   <td style={{...td,color:'#fff',fontWeight:600}}>{u.name||'—'}</td>
                   <td style={{...td,color:'#9ca3af'}}>{u.email}</td>
-                  <td style={td}><span style={{background:'rgba(123,28,46,0.15)',border:'1px solid rgba(123,28,46,0.3)',borderRadius:'20px',padding:'2px 8px',color:'#f9a8d4',fontSize:'11px',fontWeight:600}}>{u.role||'user'}</span></td>
+                  <td style={td}><span style={{background:'rgba(26,79,168,0.15)',border:'1px solid rgba(26,79,168,0.3)',borderRadius:'20px',padding:'2px 8px',color:'#f9a8d4',fontSize:'11px',fontWeight:600}}>{u.role||'user'}</span></td>
                   <td style={{...td,color:'#6b7280'}}>{u.addedDate||'—'}</td>
                 </tr>
               ))}
@@ -166,7 +166,7 @@ export default function UsersPage() {
             </div>
             <p style={{color:'#4b5563',fontSize:'12px',margin:'0 0 16px',lineHeight:1.5}}>An invite email will be sent. You'll also see the direct signup link immediately after, in case the email doesn't arrive.</p>
             <div style={{display:'flex',gap:'10px'}}>
-              <button onClick={sendInvite} disabled={inviting||!inviteEmail} style={{flex:1,background:inviteEmail&&!inviting?'#7b1c2e':'#2d0e18',color:inviteEmail&&!inviting?'#fff':'#5a2030',border:'none',borderRadius:'10px',padding:'13px',fontSize:'14px',fontWeight:700,cursor:inviteEmail&&!inviting?'pointer':'not-allowed'}}>{inviting?'Sending...':'Send Invite'}</button>
+              <button onClick={sendInvite} disabled={inviting||!inviteEmail} style={{flex:1,background:inviteEmail&&!inviting?'#1a4fa8':'#0d2d6b',color:inviteEmail&&!inviting?'#fff':'#1a3a7a',border:'none',borderRadius:'10px',padding:'13px',fontSize:'14px',fontWeight:700,cursor:inviteEmail&&!inviting?'pointer':'not-allowed'}}>{inviting?'Sending...':'Send Invite'}</button>
               <button onClick={()=>{setShowInvite(false);setInviteEmail('');setInviteName('');}} style={{flex:1,background:'#242424',color:'#9ca3af',border:'1px solid #2a2a2a',borderRadius:'10px',padding:'13px',fontSize:'14px',cursor:'pointer'}}>Cancel</button>
             </div>
           </div>

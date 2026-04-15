@@ -150,7 +150,7 @@ export default function CalculatorPage() {
                 <label style={lbl}>Vial Size</label>
                 <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
                   {sizeOptions.map(opt=>(
-                    <button key={opt.mg} onClick={()=>setVialMg(String(opt.mg))} style={{background:vialMg===String(opt.mg)?'rgba(123,28,46,0.3)':'#0f0f0f',border:`1px solid ${vialMg===String(opt.mg)?'#7b1c2e':'#2a2a2a'}`,borderRadius:'7px',padding:'7px 14px',color:vialMg===String(opt.mg)?'#f87171':'#9ca3af',fontSize:'13px',cursor:'pointer',fontWeight:vialMg===String(opt.mg)?700:400}}>
+                    <button key={opt.mg} onClick={()=>setVialMg(String(opt.mg))} style={{background:vialMg===String(opt.mg)?'rgba(26,79,168,0.3)':'#0f0f0f',border:`1px solid ${vialMg===String(opt.mg)?'#1a4fa8':'#2a2a2a'}`,borderRadius:'7px',padding:'7px 14px',color:vialMg===String(opt.mg)?'#f87171':'#9ca3af',fontSize:'13px',cursor:'pointer',fontWeight:vialMg===String(opt.mg)?700:400}}>
                       {opt.mg}mg — ${opt.price.toLocaleString()}/10
                     </button>
                   ))}
@@ -179,7 +179,7 @@ export default function CalculatorPage() {
               </select>
             </div>
 
-            <button onClick={calculate} disabled={!vialMg||!doseMcg} style={{width:'100%',background:vialMg&&doseMcg?'#7b1c2e':'#1a1a1a',color:vialMg&&doseMcg?'#fff':'#4b5563',border:'none',borderRadius:'10px',padding:'13px',fontSize:'14px',fontWeight:700,cursor:vialMg&&doseMcg?'pointer':'not-allowed'}}>Calculate</button>
+            <button onClick={calculate} disabled={!vialMg||!doseMcg} style={{width:'100%',background:vialMg&&doseMcg?'#1a4fa8':'#1a1a1a',color:vialMg&&doseMcg?'#fff':'#4b5563',border:'none',borderRadius:'10px',padding:'13px',fontSize:'14px',fontWeight:700,cursor:vialMg&&doseMcg?'pointer':'not-allowed'}}>Calculate</button>
           </div>
 
           <div>
@@ -212,7 +212,7 @@ export default function CalculatorPage() {
                     </div>
                   )}
                 </div>
-                <div style={{marginTop:'14px',background:'rgba(123,28,46,0.1)',border:'1px solid rgba(123,28,46,0.2)',borderRadius:'10px',padding:'12px'}}>
+                <div style={{marginTop:'14px',background:'rgba(26,79,168,0.1)',border:'1px solid rgba(26,79,168,0.2)',borderRadius:'10px',padding:'12px'}}>
                   <p style={{color:'#f9a8d4',fontSize:'12px',margin:0,lineHeight:1.6}}>
                     💉 Draw <strong>{result.drawUnits} IU</strong> ({result.drawMl} mL) for each {doseMcg} mcg dose.
                   </p>
@@ -243,7 +243,7 @@ export default function CalculatorPage() {
           <div style={card}>
             <h3 style={{color:'#fff',fontSize:'16px',fontWeight:700,margin:'0 0 8px'}}>Upload Photos</h3>
             <p style={{color:'#6b7280',fontSize:'13px',margin:'0 0 16px',lineHeight:1.6}}>Upload up to {MAX_FILES} photos of peptide vials, labels, or dosing charts.</p>
-            <div onDrop={onDrop} onDragOver={onDragOver} onDragEnter={onDragOver} onDragLeave={onDragLeave} onClick={()=>images.length<MAX_FILES&&fileRef.current?.click()} style={{border:`2px dashed ${isDragging?'#7b1c2e':'#2a2a2a'}`,borderRadius:'12px',padding:'24px',textAlign:'center',cursor:images.length<MAX_FILES?'pointer':'default',marginBottom:'14px',background:isDragging?'rgba(123,28,46,0.08)':'rgba(255,255,255,0.01)',transition:'all 0.15s'}}>
+            <div onDrop={onDrop} onDragOver={onDragOver} onDragEnter={onDragOver} onDragLeave={onDragLeave} onClick={()=>images.length<MAX_FILES&&fileRef.current?.click()} style={{border:`2px dashed ${isDragging?'#1a4fa8':'#2a2a2a'}`,borderRadius:'12px',padding:'24px',textAlign:'center',cursor:images.length<MAX_FILES?'pointer':'default',marginBottom:'14px',background:isDragging?'rgba(26,79,168,0.08)':'rgba(255,255,255,0.01)',transition:'all 0.15s'}}>
               <div style={{fontSize:'32px',marginBottom:'8px'}}>📷</div>
               <p style={{color:isDragging?'#f87171':'#6b7280',fontSize:'13px',margin:'0 0 4px',fontWeight:isDragging?600:400}}>{isDragging?'Drop here':'Drag & drop or click to browse'}</p>
               <p style={{color:'#374151',fontSize:'11px',margin:0}}>{images.length}/{MAX_FILES} images</p>
@@ -257,10 +257,10 @@ export default function CalculatorPage() {
                     <button onClick={e=>{e.stopPropagation();removeImage(img.id);}} style={{position:'absolute',top:'3px',right:'3px',background:'rgba(0,0,0,0.7)',border:'none',borderRadius:'50%',width:'20px',height:'20px',color:'#fff',fontSize:'13px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
                   </div>
                 ))}
-                {images.length<MAX_FILES&&<div onClick={()=>fileRef.current?.click()} style={{borderRadius:'8px',border:'2px dashed #2a2a2a',aspectRatio:'1',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'#4b5563',fontSize:'24px'}} onMouseOver={e=>e.currentTarget.style.borderColor='#7b1c2e'} onMouseOut={e=>e.currentTarget.style.borderColor='#2a2a2a'}>+</div>}
+                {images.length<MAX_FILES&&<div onClick={()=>fileRef.current?.click()} style={{borderRadius:'8px',border:'2px dashed #2a2a2a',aspectRatio:'1',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'#4b5563',fontSize:'24px'}} onMouseOver={e=>e.currentTarget.style.borderColor='#1a4fa8'} onMouseOut={e=>e.currentTarget.style.borderColor='#2a2a2a'}>+</div>}
               </div>
             )}
-            <button onClick={analyzePhotos} disabled={aiLoading||images.length===0} style={{width:'100%',background:!aiLoading&&images.length?'#7b1c2e':'#2d0e18',color:!aiLoading&&images.length?'#fff':'#6b2d3e',border:'none',borderRadius:'10px',padding:'13px',fontSize:'14px',fontWeight:700,cursor:!aiLoading&&images.length?'pointer':'not-allowed'}}>
+            <button onClick={analyzePhotos} disabled={aiLoading||images.length===0} style={{width:'100%',background:!aiLoading&&images.length?'#1a4fa8':'#0d2d6b',color:!aiLoading&&images.length?'#fff':'#6b2d3e',border:'none',borderRadius:'10px',padding:'13px',fontSize:'14px',fontWeight:700,cursor:!aiLoading&&images.length?'pointer':'not-allowed'}}>
               {aiLoading?'🤖 Analyzing...':images.length===0?'Upload images first':`🤖 Analyze ${images.length} Image${images.length>1?'s':''}`}
             </button>
           </div>

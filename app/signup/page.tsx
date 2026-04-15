@@ -85,7 +85,7 @@ export default function SignupPage() {
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
             <h2 style={{ color: '#fff', fontSize: '22px', fontWeight: 800, margin: '0 0 8px' }}>Account created!</h2>
             <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 24px' }}>Your password has been set. You can now log in.</p>
-            <a href='/admin' style={{ display: 'inline-block', background: '#7b1c2e', color: '#fff', textDecoration: 'none', padding: '12px 28px', borderRadius: '10px', fontWeight: 700, fontSize: '15px' }}>Go to Login →</a>
+            <a href='/admin' style={{ display: 'inline-block', background: '#1a4fa8', color: '#fff', textDecoration: 'none', padding: '12px 28px', borderRadius: '10px', fontWeight: 700, fontSize: '15px' }}>Go to Login →</a>
           </div>
         ) : error && !invite ? (
           <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '20px', padding: '40px', textAlign: 'center' }}>
@@ -112,7 +112,7 @@ export default function SignupPage() {
               <label style={{ display: 'block', color: '#9ca3af', fontSize: '11px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Confirm Password</label>
               {pwField(confirm, setConfirm, showConfirm, setShowConfirm, 'Repeat password')}
             </div>
-            <button onClick={submit} disabled={saving} style={{ width: '100%', background: saving ? '#2d0e18' : '#7b1c2e', color: saving ? '#6b2d3e' : '#fff', border: 'none', borderRadius: '10px', padding: '15px', fontSize: '16px', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}>
+            <button onClick={submit} disabled={saving} style={{ width: '100%', background: saving ? '#0d2d6b' : '#1a4fa8', color: saving ? '#6b2d3e' : '#fff', border: 'none', borderRadius: '10px', padding: '15px', fontSize: '16px', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}>
               {saving ? 'Creating account...' : 'Create Account →'}
             </button>
           </div>

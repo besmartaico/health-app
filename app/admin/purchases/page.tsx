@@ -90,7 +90,7 @@ export default function PurchasesPage() {
           <h1 style={{fontSize:'22px',fontWeight:800,color:'#fff',margin:'0 0 4px'}}>Purchases</h1>
           <p style={{color:'#6b7280',fontSize:'13px',margin:0}}>{purchases.length} records · ${totalSpend.toLocaleString('en-US',{minimumFractionDigits:2})} total spend</p>
         </div>
-        <button onClick={openAdd} style={{background:'#7b1c2e',color:'#fff',border:'none',borderRadius:'9px',padding:'10px 20px',fontSize:'13px',fontWeight:600,cursor:'pointer'}}>+ Add Purchase</button>
+        <button onClick={openAdd} style={{background:'#1a4fa8',color:'#fff',border:'none',borderRadius:'9px',padding:'10px 20px',fontSize:'13px',fontWeight:600,cursor:'pointer'}}>+ Add Purchase</button>
       </div>
 
       <div style={{marginBottom:'16px'}}>
@@ -190,7 +190,7 @@ export default function PurchasesPage() {
             )}
 
             <div style={{display:'flex',gap:'10px'}}>
-              <button onClick={save} disabled={saving||!form.item.trim()} style={{flex:1,background:form.item.trim()&&!saving?'#7b1c2e':'#2d0e18',color:form.item.trim()&&!saving?'#fff':'#5a2030',border:'none',borderRadius:'10px',padding:'13px',fontSize:'14px',fontWeight:700,cursor:form.item.trim()&&!saving?'pointer':'not-allowed'}}>{saving?'Saving...':editIdx!==null?'Save Changes':'Add Purchase'}</button>
+              <button onClick={save} disabled={saving||!form.item.trim()} style={{flex:1,background:form.item.trim()&&!saving?'#1a4fa8':'#0d2d6b',color:form.item.trim()&&!saving?'#fff':'#1a3a7a',border:'none',borderRadius:'10px',padding:'13px',fontSize:'14px',fontWeight:700,cursor:form.item.trim()&&!saving?'pointer':'not-allowed'}}>{saving?'Saving...':editIdx!==null?'Save Changes':'Add Purchase'}</button>
               <button onClick={()=>{setShowForm(false);setForm({...EMPTY});setEditIdx(null);setUseCustomItem(false);}} style={{flex:1,background:'#242424',color:'#9ca3af',border:'1px solid #2a2a2a',borderRadius:'10px',padding:'13px',fontSize:'14px',cursor:'pointer'}}>Cancel</button>
             </div>
           </div>

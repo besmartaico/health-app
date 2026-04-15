@@ -107,7 +107,7 @@ export default function SalesPage() {
           <h1 style={{fontSize:'20px',fontWeight:800,color:'#fff',margin:'0 0 2px'}}>Sales</h1>
           <p style={{color:'#6b7280',fontSize:'12px',margin:0}}>{sales.length} sales · ${totalRevenue.toLocaleString('en-US',{minimumFractionDigits:2})}</p>
         </div>
-        <button onClick={openAdd} style={{background:'#7b1c2e',color:'#fff',border:'none',borderRadius:'9px',padding:'11px 18px',fontSize:'14px',fontWeight:600,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>+ Sale</button>
+        <button onClick={openAdd} style={{background:'#1a4fa8',color:'#fff',border:'none',borderRadius:'9px',padding:'11px 18px',fontSize:'14px',fontWeight:600,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>+ Sale</button>
       </div>
 
       <input type='text' placeholder='Search...' value={search} onChange={e=>setSearch(e.target.value)} style={{...inp,marginBottom:'16px',maxWidth:'320px'}} />
@@ -219,7 +219,7 @@ export default function SalesPage() {
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
                 <label style={{...lbl,margin:0}}>Items</label>
                 <div style={{display:'flex',gap:'6px'}}>
-                  <button onClick={addLine} style={{background:'rgba(123,28,46,0.2)',border:'1px solid rgba(123,28,46,0.4)',borderRadius:'6px',color:'#f87171',fontSize:'12px',padding:'5px 10px',cursor:'pointer',fontWeight:600}}>+ Item</button>
+                  <button onClick={addLine} style={{background:'rgba(26,79,168,0.2)',border:'1px solid rgba(26,79,168,0.4)',borderRadius:'6px',color:'#f87171',fontSize:'12px',padding:'5px 10px',cursor:'pointer',fontWeight:600}}>+ Item</button>
                   {!showReferral&&<button onClick={()=>setShowReferral(true)} style={{background:'rgba(167,139,250,0.1)',border:'1px solid rgba(167,139,250,0.3)',borderRadius:'6px',color:'#a78bfa',fontSize:'12px',padding:'5px 10px',cursor:'pointer',fontWeight:600}}>+ Referral</button>}
                 </div>
               </div>
@@ -268,7 +268,7 @@ export default function SalesPage() {
             )}
             <div style={{marginBottom:'16px'}}><label style={lbl}>Notes</label><input type='text' placeholder='Optional' value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} style={inp} /></div>
             <div style={{display:'flex',gap:'10px'}}>
-              <button onClick={save} disabled={saving||!form.lines.some(l=>l.product)||(newCustMode&&!newCustName.trim())} style={{flex:1,background:form.lines.some(l=>l.product)&&!saving?'#7b1c2e':'#2d0e18',color:form.lines.some(l=>l.product)&&!saving?'#fff':'#5a2030',border:'none',borderRadius:'10px',padding:'14px',fontSize:'15px',fontWeight:700,cursor:form.lines.some(l=>l.product)&&!saving?'pointer':'not-allowed'}}>{saving?'Saving...':editIdx!==null?'Save Changes':'Record Sale'}</button>
+              <button onClick={save} disabled={saving||!form.lines.some(l=>l.product)||(newCustMode&&!newCustName.trim())} style={{flex:1,background:form.lines.some(l=>l.product)&&!saving?'#1a4fa8':'#0d2d6b',color:form.lines.some(l=>l.product)&&!saving?'#fff':'#1a3a7a',border:'none',borderRadius:'10px',padding:'14px',fontSize:'15px',fontWeight:700,cursor:form.lines.some(l=>l.product)&&!saving?'pointer':'not-allowed'}}>{saving?'Saving...':editIdx!==null?'Save Changes':'Record Sale'}</button>
               <button onClick={()=>{setShowForm(false);setForm({...EMPTY,lines:[newLine()]});setEditIdx(null);}} style={{flex:1,background:'#242424',color:'#9ca3af',border:'1px solid #2a2a2a',borderRadius:'10px',padding:'14px',fontSize:'15px',cursor:'pointer'}}>Cancel</button>
             </div>
           </div>

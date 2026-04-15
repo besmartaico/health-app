@@ -88,7 +88,7 @@ export default function AdminLayout({ children }) {
           <input type={showPw?'text':'password'} placeholder={email?'Password':'PIN'} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleSubmit()} style={{...inp,paddingRight:'50px'}} autoComplete='current-password' />
           <button onClick={()=>setShowPw(v=>!v)} style={{position:'absolute',right:'14px',top:'50%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'#6b7280',cursor:'pointer',fontSize:'18px',padding:'4px'}}>{showPw?'🙈':'👁'}</button>
         </div>
-        <button onClick={handleSubmit} disabled={loading||!password} style={{width:'100%',background:password&&!loading?'#7b1c2e':'#2d0e18',color:password&&!loading?'#fff':'#5a2030',border:'none',borderRadius:'10px',padding:'15px',fontSize:'16px',fontWeight:700,cursor:password&&!loading?'pointer':'not-allowed',marginBottom:'16px'}}>{loading?'Signing in...':'Sign In'}</button>
+        <button onClick={handleSubmit} disabled={loading||!password} style={{width:'100%',background:password&&!loading?'#1a4fa8':'#0d2d6b',color:password&&!loading?'#fff':'#1a3a7a',border:'none',borderRadius:'10px',padding:'15px',fontSize:'16px',fontWeight:700,cursor:password&&!loading?'pointer':'not-allowed',marginBottom:'16px'}}>{loading?'Signing in...':'Sign In'}</button>
         <div style={{textAlign:'center'}}><a href='/signup' style={{color:'#4b5563',fontSize:'13px',textDecoration:'none'}}>Create account with invite link →</a></div>
       </div>
     </div>
@@ -98,7 +98,7 @@ export default function AdminLayout({ children }) {
     const active = pathname===item.href || (item.href!=='/admin'&&item.href!=='/api/sso'&&pathname?.startsWith(item.href));
     return (
       <a key={item.href} href={item.href}
-        style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 20px',color:active?'#fff':'#9ca3af',background:active?'rgba(123,28,46,0.2)':'transparent',borderLeft:active?'3px solid #7b1c2e':'3px solid transparent',textDecoration:'none',fontSize:'14px',fontWeight:active?600:400,transition:'all 0.1s'}}
+        style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 20px',color:active?'#fff':'#9ca3af',background:active?'rgba(26,79,168,0.2)':'transparent',borderLeft:active?'3px solid #1a4fa8':'3px solid transparent',textDecoration:'none',fontSize:'14px',fontWeight:active?600:400,transition:'all 0.1s'}}
         onMouseOver={e=>{if(!active){e.currentTarget.style.color='#d1d5db';e.currentTarget.style.background='rgba(255,255,255,0.04)';}}}
         onMouseOut={e=>{if(!active){e.currentTarget.style.color='#9ca3af';e.currentTarget.style.background='transparent';}}}
       >

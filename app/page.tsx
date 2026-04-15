@@ -56,19 +56,19 @@ export default function HomePage() {
         <div style={{ background: '#fff', borderRadius: '8px', padding: '5px 14px' }}>
           <img src={LOGO} alt='BeSmart Health' style={{ height: '28px', display: 'block' }} />
         </div>
-        <a href='/admin' style={{ background: '#7b1c2e', color: '#fff', textDecoration: 'none', fontSize: '14px', padding: '9px 20px', borderRadius: '8px', fontWeight: 600 }}>Login</a>
+        <a href='/admin' style={{ background: '#1a4fa8', color: '#fff', textDecoration: 'none', fontSize: '14px', padding: '9px 20px', borderRadius: '8px', fontWeight: 600 }}>Login</a>
       </nav>
 
       {/* Hero */}
       <section style={{ textAlign: 'center', padding: '80px 24px 60px', maxWidth: '860px', margin: '0 auto' }}>
         <h1 style={{ fontSize: 'clamp(36px,6vw,64px)', fontWeight: 900, lineHeight: 1.1, margin: '0 0 20px', letterSpacing: '-1.5px' }}>
           Precision Wellness<br />
-          <span style={{ background: 'linear-gradient(135deg,#c0394f,#7b1c2e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Peptides</span>
+          <span style={{ background: 'linear-gradient(135deg,#c0394f,#1a4fa8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Peptides</span>
         </h1>
         <p style={{ fontSize: '18px', color: '#9ca3af', lineHeight: 1.7, margin: '0 auto 36px', maxWidth: '580px' }}>
           Personalized peptide therapies, independently tested and batch-documented for your confidence.
         </p>
-        <a href='#peptides' style={{ display: 'inline-block', background: '#7b1c2e', color: '#fff', textDecoration: 'none', padding: '14px 32px', borderRadius: '10px', fontWeight: 700, fontSize: '15px' }}>View Our Peptides</a>
+        <a href='#peptides' style={{ display: 'inline-block', background: '#1a4fa8', color: '#fff', textDecoration: 'none', padding: '14px 32px', borderRadius: '10px', fontWeight: 700, fontSize: '15px' }}>View Our Peptides</a>
       </section>
 
       {/* Trust badges - replaces stats bar */}

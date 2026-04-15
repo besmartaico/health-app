@@ -63,7 +63,7 @@ function SearchableDropdown({ options, value, onChange, placeholder, instrMap })
             {filtered.length===0?<div style={{padding:'12px 16px',color:'#4b5563',fontSize:'13px'}}>No matches</div>
             :filtered.map(o=>(
               <div key={o} onClick={()=>{onChange(o);setOpen(false);setSearch('');}}
-                style={{padding:'10px 16px',fontSize:'13px',color:o===value?'#fff':'#9ca3af',background:o===value?'rgba(123,28,46,0.25)':'transparent',cursor:'pointer',borderLeft:o===value?'2px solid #7b1c2e':'2px solid transparent',display:'flex',alignItems:'center',justifyContent:'space-between'}}
+                style={{padding:'10px 16px',fontSize:'13px',color:o===value?'#fff':'#9ca3af',background:o===value?'rgba(26,79,168,0.25)':'transparent',cursor:'pointer',borderLeft:o===value?'2px solid #1a4fa8':'2px solid transparent',display:'flex',alignItems:'center',justifyContent:'space-between'}}
                 onMouseOver={e=>{if(o!==value)e.currentTarget.style.background='rgba(255,255,255,0.05)';}}
                 onMouseOut={e=>{if(o!==value)e.currentTarget.style.background='transparent';}}
               >
@@ -239,9 +239,9 @@ export default function InstructionsPage() {
         <div style={{flex:1,overflowY:'auto'}}>
           {peptides.length===0&&<p style={{color:'#374151',fontSize:'12px',padding:'12px 16px'}}>No purchases yet.</p>}
           {visiblePeptides.map(name=>(
-            <div key={name} style={{display:'flex',alignItems:'center',borderLeft:name===selected?'2px solid #7b1c2e':'2px solid transparent'}}>
+            <div key={name} style={{display:'flex',alignItems:'center',borderLeft:name===selected?'2px solid #1a4fa8':'2px solid transparent'}}>
               <button onClick={()=>setSelected(name)}
-                style={{flex:1,textAlign:'left',padding:'10px 14px',background:name===selected?'rgba(123,28,46,0.18)':'transparent',color:name===selected?'#fff':'#9ca3af',border:'none',fontSize:'13px',fontWeight:name===selected?600:400,cursor:'pointer',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:'6px'}}
+                style={{flex:1,textAlign:'left',padding:'10px 14px',background:name===selected?'rgba(26,79,168,0.18)':'transparent',color:name===selected?'#fff':'#9ca3af',border:'none',fontSize:'13px',fontWeight:name===selected?600:400,cursor:'pointer',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:'6px'}}
                 onMouseOver={e=>{if(name!==selected){e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.color='#d1d5db';}}}
                 onMouseOut={e=>{if(name!==selected){e.currentTarget.style.background='transparent';e.currentTarget.style.color='#9ca3af';}}}
               >
@@ -280,7 +280,7 @@ export default function InstructionsPage() {
                 {unsaved.has(selected)&&<span style={{fontSize:'10px',color:'#fbbf24',fontWeight:700,background:'rgba(251,191,36,0.1)',border:'1px solid rgba(251,191,36,0.3)',borderRadius:'4px',padding:'2px 6px'}}>UNSAVED</span>}
                 <button onClick={loadInstructions} disabled={loadingData} title='Reload data from Google Sheet' style={{background:'rgba(255,255,255,0.04)',color:loadingData?'#374151':'#6b7280',border:'1px solid #2a2a2a',borderRadius:'9px',padding:'10px 14px',fontSize:'13px',cursor:loadingData?'not-allowed':'pointer'}}>{loadingData?'⟳':'⟳'}</button>
                 <button onClick={openPlanModal} style={{background:'rgba(16,185,129,0.1)',color:'#34d399',border:'1px solid rgba(16,185,129,0.3)',borderRadius:'9px',padding:'10px 18px',fontSize:'13px',fontWeight:600,cursor:'pointer',whiteSpace:'nowrap'}}>📧 Generate Plan</button>
-                <button onClick={saveInstructions} disabled={saving} style={{background:saving?'#2d0e18':'#7b1c2e',color:saving?'#5a2030':'#fff',border:'none',borderRadius:'9px',padding:'10px 20px',fontSize:'13px',fontWeight:600,cursor:saving?'not-allowed':'pointer'}}>{saving?'Saving...':'Save'}</button>
+                <button onClick={saveInstructions} disabled={saving} style={{background:saving?'#0d2d6b':'#1a4fa8',color:saving?'#1a3a7a':'#fff',border:'none',borderRadius:'9px',padding:'10px 20px',fontSize:'13px',fontWeight:600,cursor:saving?'not-allowed':'pointer'}}>{saving?'Saving...':'Save'}</button>
               </div>
             </div>
 
@@ -398,7 +398,7 @@ export default function InstructionsPage() {
               </div>
               {sendResult===''&&(
                 <button onClick={sendPlan} disabled={sending||!planPatient||!planEmail}
-                  style={{width:'100%',background:planPatient&&planEmail&&!sending?'#7b1c2e':'#2d0e18',color:planPatient&&planEmail&&!sending?'#fff':'#5a2030',border:'none',borderRadius:'10px',padding:'14px',fontSize:'15px',fontWeight:700,cursor:planPatient&&planEmail&&!sending?'pointer':'not-allowed'}}>
+                  style={{width:'100%',background:planPatient&&planEmail&&!sending?'#1a4fa8':'#0d2d6b',color:planPatient&&planEmail&&!sending?'#fff':'#1a3a7a',border:'none',borderRadius:'10px',padding:'14px',fontSize:'15px',fontWeight:700,cursor:planPatient&&planEmail&&!sending?'pointer':'not-allowed'}}>
                   {sending?'Sending...':'📧 Send Plan to Patient'}
                 </button>
               )}
@@ -409,14 +409,14 @@ export default function InstructionsPage() {
                   <div style={{color:'#6b7280',fontSize:'13px',marginBottom:'20px'}}>{planEmail}</div>
                   <div style={{display:'flex',gap:'10px',justifyContent:'center'}}>
                     <button onClick={()=>{setPlanPatient('');setPlanEmail('');setSendResult('');}} style={{background:'#242424',color:'#9ca3af',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'10px 20px',fontSize:'13px',cursor:'pointer'}}>Send Another</button>
-                    <button onClick={()=>{setShowPlanModal(false);setSendResult('');}} style={{background:'#7b1c2e',color:'#fff',border:'none',borderRadius:'8px',padding:'10px 20px',fontSize:'13px',fontWeight:600,cursor:'pointer'}}>Done</button>
+                    <button onClick={()=>{setShowPlanModal(false);setSendResult('');}} style={{background:'#1a4fa8',color:'#fff',border:'none',borderRadius:'8px',padding:'10px 20px',fontSize:'13px',fontWeight:600,cursor:'pointer'}}>Done</button>
                   </div>
                 </div>
               )}
               {sendResult.startsWith('error')&&(
                 <div>
                   <div style={{background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'8px',padding:'12px',marginBottom:'12px',color:'#f87171',fontSize:'13px'}}>⚠ {sendResult.replace('error:','')}</div>
-                  <button onClick={sendPlan} disabled={sending} style={{width:'100%',background:'#7b1c2e',color:'#fff',border:'none',borderRadius:'10px',padding:'13px',fontSize:'14px',fontWeight:700,cursor:'pointer'}}>Retry</button>
+                  <button onClick={sendPlan} disabled={sending} style={{width:'100%',background:'#1a4fa8',color:'#fff',border:'none',borderRadius:'10px',padding:'13px',fontSize:'14px',fontWeight:700,cursor:'pointer'}}>Retry</button>
                 </div>
               )}
             </div>

@@ -2,7 +2,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 
-const COLORS = ['#7b1c2e','#3b82f6','#10b981','#8b5cf6','#f59e0b','#ec4899','#14b8a6'];
+const COLORS = ['#1a4fa8','#3b82f6','#10b981','#8b5cf6','#f59e0b','#ec4899','#14b8a6'];
 const EMPTY = { name: '', description: '' };
 const th = { textAlign: 'left', padding: '10px 18px', fontSize: '11px', fontWeight: 700, color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.08em', background: '#161616', borderBottom: '1px solid #1f1f1f' };
 const td = { padding: '13px 18px', fontSize: '13px', color: '#d1d5db', borderBottom: '1px solid #1f1f1f' };
@@ -98,13 +98,13 @@ export default function TeamsPage() {
         </div>
         <button
           onClick={() => { setShowForm(true); setEditId(null); setForm({ ...EMPTY }); }}
-          style={{ background: '#7b1c2e', color: '#fff', border: 'none', borderRadius: '9px', padding: '10px 20px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+          style={{ background: '#1a4fa8', color: '#fff', border: 'none', borderRadius: '9px', padding: '10px 20px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
           + New Team
         </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px', marginBottom: '24px' }}>
-        {[['Total Teams', String(teams.length), '#7b1c2e'], ['Assigned Users', String(users.filter(u => u.teamId).length), '#10b981'], ['Unassigned', String(unassigned.length), unassigned.length > 0 ? '#f59e0b' : '#4b5563']].map(([l, v, c]) => (
+        {[['Total Teams', String(teams.length), '#1a4fa8'], ['Assigned Users', String(users.filter(u => u.teamId).length), '#10b981'], ['Unassigned', String(unassigned.length), unassigned.length > 0 ? '#f59e0b' : '#4b5563']].map(([l, v, c]) => (
           <div key={l} style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '12px', padding: '16px 18px' }}>
             <div style={{ fontSize: '11px', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>{l}</div>
             <div style={{ fontSize: '26px', fontWeight: 800, color: c }}>{v}</div>
@@ -119,7 +119,7 @@ export default function TeamsPage() {
           <div style={{ fontSize: '44px', marginBottom: '16px' }}>🏢</div>
           <div style={{ color: '#fff', fontWeight: 700, fontSize: '17px', marginBottom: '8px' }}>No teams yet</div>
           <div style={{ color: '#4b5563', fontSize: '13px', marginBottom: '22px' }}>Create your first team to scope data per user group.</div>
-          <button onClick={() => { setShowForm(true); setForm({ ...EMPTY }); }} style={{ background: '#7b1c2e', color: '#fff', border: 'none', borderRadius: '9px', padding: '11px 22px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => { setShowForm(true); setForm({ ...EMPTY }); }} style={{ background: '#1a4fa8', color: '#fff', border: 'none', borderRadius: '9px', padding: '11px 22px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
             + Create First Team
           </button>
         </div>
@@ -162,7 +162,7 @@ export default function TeamsPage() {
                         <tbody>
                           {members.map(u => (
                             <tr key={u.email} onMouseOver={e => e.currentTarget.style.background = '#1a1a1a'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-                              <td style={td}><div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(123,28,46,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: '#f87171' }}>{(u.name || u.email).charAt(0).toUpperCase()}</div><span style={{ color: '#fff', fontWeight: 600 }}>{u.name || '—'}</span></div></td>
+                              <td style={td}><div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(26,79,168,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: '#f87171' }}>{(u.name || u.email).charAt(0).toUpperCase()}</div><span style={{ color: '#fff', fontWeight: 600 }}>{u.name || '—'}</span></div></td>
                               <td style={td}><span style={{ background: 'rgba(16,185,129,0.1)', color: '#34d399', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '20px', padding: '2px 9px', fontSize: '11px', fontWeight: 600 }}>{u.role}</span></td>
                               <td style={{ ...td, color: '#4b5563', fontSize: '12px' }}>{u.email}</td>
                               <td style={td}><button onClick={() => assignUser(u.email, '')} style={{ background: 'transparent', border: '1px solid #2a2a2a', borderRadius: '6px', color: '#6b7280', fontSize: '11px', padding: '4px 10px', cursor: 'pointer' }} onMouseOver={e => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; }} onMouseOut={e => { e.currentTarget.style.color = '#6b7280'; e.currentTarget.style.borderColor = '#2a2a2a'; }}>Remove</button></td>
@@ -207,7 +207,7 @@ export default function TeamsPage() {
               <input type="text" placeholder="What does this team handle?" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} style={inp} />
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={saveTeam} disabled={saving || !form.name.trim()} style={{ flex: 1, background: form.name.trim() && !saving ? '#7b1c2e' : '#2d0e18', color: form.name.trim() && !saving ? '#fff' : '#5a2030', border: 'none', borderRadius: '10px', padding: '13px', fontSize: '14px', fontWeight: 700, cursor: form.name.trim() && !saving ? 'pointer' : 'not-allowed' }}>
+              <button onClick={saveTeam} disabled={saving || !form.name.trim()} style={{ flex: 1, background: form.name.trim() && !saving ? '#1a4fa8' : '#0d2d6b', color: form.name.trim() && !saving ? '#fff' : '#1a3a7a', border: 'none', borderRadius: '10px', padding: '13px', fontSize: '14px', fontWeight: 700, cursor: form.name.trim() && !saving ? 'pointer' : 'not-allowed' }}>
                 {saving ? 'Saving...' : editId ? 'Save Changes' : 'Create Team'}
               </button>
               <button onClick={() => { setShowForm(false); setForm({ ...EMPTY }); setEditId(null); }} style={{ flex: 1, background: '#242424', color: '#9ca3af', border: '1px solid #2a2a2a', borderRadius: '10px', padding: '13px', fontSize: '14px', cursor: 'pointer' }}>

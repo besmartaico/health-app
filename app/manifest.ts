@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: '/admin',
     display: 'standalone',
     background_color: '#0a0a0a',
-    theme_color: '#7b1c2e',
+    theme_color: '#1a4fa8',
     orientation: 'portrait',
     icons: [
       { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml' },

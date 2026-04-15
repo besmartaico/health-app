@@ -45,7 +45,7 @@ export default function PeptideAIPage() {
 
       {/* Header */}
       <div style={{padding:'16px 24px',borderBottom:'1px solid #1f1f1f',display:'flex',alignItems:'center',gap:'14px',flexShrink:0}}>
-        <div style={{width:'42px',height:'42px',borderRadius:'50%',background:'linear-gradient(135deg,#7b1c2e,#c0394f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'20px'}}>🤖</div>
+        <div style={{width:'42px',height:'42px',borderRadius:'50%',background:'linear-gradient(135deg,#1a4fa8,#c0394f)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'20px'}}>🤖</div>
         <div>
           <div style={{color:'#fff',fontWeight:700,fontSize:'15px'}}>Peptide AI</div>
           <div style={{color:'#34d399',fontSize:'12px',display:'flex',alignItems:'center',gap:'4px'}}><div style={{width:'6px',height:'6px',borderRadius:'50%',background:'#34d399'}}></div>Online</div>
@@ -61,7 +61,7 @@ export default function PeptideAIPage() {
             <div key={i} style={{display:'flex',flexDirection:'column',alignItems:isUser?'flex-end':'flex-start',marginBottom:'8px'}}>
               <div style={{
                 maxWidth:'72%',
-                background:isUser?'#7b1c2e':'#1e1e1e',
+                background:isUser?'#1a4fa8':'#1e1e1e',
                 border:isUser?'none':'1px solid #2a2a2a',
                 borderRadius:isUser?'18px 18px 4px 18px':'18px 18px 18px 4px',
                 padding:'10px 15px',
@@ -95,7 +95,7 @@ export default function PeptideAIPage() {
           <div style={{color:'#4b5563',fontSize:'11px',fontWeight:600,marginBottom:'8px',textTransform:'uppercase',letterSpacing:'0.07em'}}>Quick questions</div>
           <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
             {QUICK.map(q=>(
-              <button key={q} onClick={()=>send(q)} style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'20px',color:'#9ca3af',fontSize:'12px',padding:'6px 14px',cursor:'pointer',whiteSpace:'nowrap'}} onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(123,28,46,0.5)';e.currentTarget.style.color='#fff';}} onMouseOut={e=>{e.currentTarget.style.borderColor='#2a2a2a';e.currentTarget.style.color='#9ca3af';}}>{q}</button>
+              <button key={q} onClick={()=>send(q)} style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'20px',color:'#9ca3af',fontSize:'12px',padding:'6px 14px',cursor:'pointer',whiteSpace:'nowrap'}} onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(26,79,168,0.5)';e.currentTarget.style.color='#fff';}} onMouseOut={e=>{e.currentTarget.style.borderColor='#2a2a2a';e.currentTarget.style.color='#9ca3af';}}>{q}</button>
             ))}
           </div>
         </div>
@@ -115,7 +115,7 @@ export default function PeptideAIPage() {
             style={{flex:1,background:'transparent',border:'none',color:'#fff',fontSize:'14px',outline:'none',resize:'none',lineHeight:1.5,maxHeight:'120px',padding:'4px 0',fontFamily:'inherit'}}
           />
           <button onClick={()=>send()} disabled={!input.trim()||loading}
-            style={{width:'36px',height:'36px',borderRadius:'50%',background:input.trim()&&!loading?'#7b1c2e':'#2a2a2a',border:'none',color:input.trim()&&!loading?'#fff':'#4b5563',cursor:input.trim()&&!loading?'pointer':'not-allowed',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:'16px',transition:'background 0.2s'}}>
+            style={{width:'36px',height:'36px',borderRadius:'50%',background:input.trim()&&!loading?'#1a4fa8':'#2a2a2a',border:'none',color:input.trim()&&!loading?'#fff':'#4b5563',cursor:input.trim()&&!loading?'pointer':'not-allowed',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:'16px',transition:'background 0.2s'}}>
             ↑
           </button>
         </div>

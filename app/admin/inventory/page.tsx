@@ -118,7 +118,7 @@ export default function InventoryPage() {
 
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px',flexWrap:'wrap',gap:'10px'}}>
         <div><h1 style={{color:'#fff',fontSize:'20px',fontWeight:800,margin:'0 0 2px'}}>Inventory</h1><p style={{color:'#6b7280',fontSize:'12px',margin:0}}>{items.length} items</p></div>
-        <button onClick={openAdd} style={{background:'#7b1c2e',color:'#fff',border:'none',borderRadius:'8px',padding:'9px 18px',fontSize:'13px',fontWeight:600,cursor:'pointer'}}>+ Add Item</button>
+        <button onClick={openAdd} style={{background:'#1a4fa8',color:'#fff',border:'none',borderRadius:'8px',padding:'9px 18px',fontSize:'13px',fontWeight:600,cursor:'pointer'}}>+ Add Item</button>
       </div>
 
       <div style={{display:'flex',gap:'8px',marginBottom:'14px',flexWrap:'wrap',alignItems:'center'}}>
@@ -266,7 +266,7 @@ export default function InventoryPage() {
               <div><label style={lbl}>Notes</label><input type='text' placeholder='Optional notes' value={form.notes} onChange={f('notes')} style={inp}/></div>
             </div>
             <div style={{display:'flex',gap:'10px',marginTop:'18px'}}>
-              <button onClick={saveEdit} disabled={saving||!form.name.trim()} style={{flex:1,background:form.name.trim()&&!saving?'#7b1c2e':'#2d0e18',color:form.name.trim()&&!saving?'#fff':'#5a2030',border:'none',borderRadius:'9px',padding:'12px',fontSize:'14px',fontWeight:700,cursor:form.name.trim()&&!saving?'pointer':'not-allowed'}}>{saving?'Saving...':editIdx!==null?'Save Changes':'Add Item'}</button>
+              <button onClick={saveEdit} disabled={saving||!form.name.trim()} style={{flex:1,background:form.name.trim()&&!saving?'#1a4fa8':'#0d2d6b',color:form.name.trim()&&!saving?'#fff':'#1a3a7a',border:'none',borderRadius:'9px',padding:'12px',fontSize:'14px',fontWeight:700,cursor:form.name.trim()&&!saving?'pointer':'not-allowed'}}>{saving?'Saving...':editIdx!==null?'Save Changes':'Add Item'}</button>
               <button onClick={()=>{setShowEdit(false);setForm({...EMPTY});setEditIdx(null);}} style={{flex:1,background:'#242424',color:'#9ca3af',border:'1px solid #2a2a2a',borderRadius:'9px',padding:'12px',fontSize:'14px',cursor:'pointer'}}>Cancel</button>
             </div>
           </div>
