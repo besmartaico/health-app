@@ -63,7 +63,7 @@ export default function HomePage() {
       <section style={{ textAlign: 'center', padding: '80px 24px 60px', maxWidth: '860px', margin: '0 auto' }}>
         <h1 style={{ fontSize: 'clamp(36px,6vw,64px)', fontWeight: 900, lineHeight: 1.1, margin: '0 0 20px', letterSpacing: '-1.5px' }}>
           Precision Wellness<br />
-          <span style={{ background: 'linear-gradient(135deg,#c0394f,#1a4fa8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Peptides</span>
+          <span style={{ color: '#1a4fa8' }}>Peptides</span>
         </h1>
         <p style={{ fontSize: '18px', color: '#9ca3af', lineHeight: 1.7, margin: '0 auto 36px', maxWidth: '580px' }}>
           Personalized peptide therapies, independently tested and batch-documented for your confidence.
