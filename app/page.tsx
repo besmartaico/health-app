@@ -1,4 +1,5 @@
-import React from 'react';
+'use client';
+// @ts-nocheck
 
       {/* ── Contact / Intake Form ── */}
       <section style={{padding:'80px 24px',background:'#0d0d0d'}}>
@@ -8,9 +9,7 @@ import React from 'react';
           <ContactForm />
         </div>
       </section>
-      // @ts-nocheck
-'use client';
-import { useState, useEffect } from 'react';
+      import { useState, useEffect } from 'react';
 
 const LOGO = '/logo.png';
 
