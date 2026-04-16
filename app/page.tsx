@@ -1,4 +1,14 @@
-// @ts-nocheck
+import React from 'react';
+
+      {/* ── Contact / Intake Form ── */}
+      <section style={{padding:'80px 24px',background:'#0d0d0d'}}>
+        <div style={{maxWidth:'640px',margin:'0 auto'}}>
+          <h2 style={{fontSize:'32px',fontWeight:800,color:'#fff',textAlign:'center',margin:'0 0 8px'}}>Get Started</h2>
+          <p style={{color:'#6b7280',textAlign:'center',margin:'0 0 40px',fontSize:'16px'}}>Tell us about yourself and your goals — we'll be in touch within 24 hours.</p>
+          <ContactForm />
+        </div>
+      </section>
+      // @ts-nocheck
 'use client';
 import { useState, useEffect } from 'react';
 
@@ -21,6 +31,42 @@ const ICONS = {
   'ImmunoGlow': '🛡️', 'IPAM': '⚡', 'Mots-c': '🔬',
   'NAD+': '⚗️', 'Retatrutide': '⚖️', 'Tirzepatide': '💊',
 };
+
+
+function ContactForm() {
+  const [form, setForm] = React.useState({name:'',email:'',phone:'',goals:'',questions:''});
+  const [status, setStatus] = React.useState('');
+  const inp = {width:'100%',background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'10px',padding:'12px 14px',color:'#fff',fontSize:'15px',outline:'none',boxSizing:'border-box' as const};
+  const lbl = {display:'block',color:'#9ca3af',fontSize:'13px',fontWeight:600,marginBottom:'6px'};
+  const f = (k:string) => (e:any) => setForm(p=>({...p,[k]:e.target.value}));
+
+  async function submit(e:any) {
+    e.preventDefault();
+    setStatus('sending');
+    try {
+      await fetch('/api/contact', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)});
+      setStatus('sent');
+      setForm({name:'',email:'',phone:'',goals:'',questions:''});
+    } catch { setStatus('error'); }
+  }
+
+  return (
+    <form onSubmit={submit} style={{display:'flex',flexDirection:'column',gap:'20px'}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'}}>
+        <div><label style={lbl}>Name *</label><input required value={form.name} onChange={f('name')} placeholder='Your full name' style={inp}/></div>
+        <div><label style={lbl}>Phone</label><input value={form.phone} onChange={f('phone')} placeholder='(555) 000-0000' style={inp}/></div>
+      </div>
+      <div><label style={lbl}>Email *</label><input required type='email' value={form.email} onChange={f('email')} placeholder='you@email.com' style={inp}/></div>
+      <div><label style={lbl}>Your Goals</label><textarea value={form.goals} onChange={f('goals')} placeholder='What are you hoping to achieve? (weight loss, energy, performance...)' rows={4} style={{...inp,resize:'vertical' as const}}/></div>
+      <div><label style={lbl}>Questions</label><textarea value={form.questions} onChange={f('questions')} placeholder='Any questions you have for us...' rows={3} style={{...inp,resize:'vertical' as const}}/></div>
+      <button type='submit' disabled={status==='sending'} style={{background:'#1a4fa8',color:'#fff',border:'none',borderRadius:'10px',padding:'14px',fontSize:'16px',fontWeight:700,cursor:'pointer',opacity:status==='sending'?0.7:1}}>
+        {status==='sending'?'Sending...':'Send My Info'}
+      </button>
+      {status==='sent'&&<p style={{color:'#34d399',textAlign:'center',fontWeight:600}}>✓ Got it! We'll be in touch within 24 hours.</p>}
+      {status==='error'&&<p style={{color:'#f87171',textAlign:'center'}}>Something went wrong — please try again.</p>}
+    </form>
+  );
+}
 
 export default function HomePage() {
   const [posters, setPosters] = useState([]);
@@ -119,7 +165,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer style={{ borderTop:'1px solid rgba(255,255,255,0.06)',padding:'32px 24px',textAlign:'center' }}>
         <div style={{ background:'#fff',borderRadius:'8px',padding:'5px 14px',display:'inline-block',marginBottom:'16px' }}>
-          <img src={LOGO} alt='BeSmart Health' style={{ height:'24px',display:'block' }} />
+          <img src={LOGO} alt='BeSmart Health' style={{ height:'120px',display:'block' }} />
         </div>
         <p style={{ color:'#4b5563',fontSize:'13px',margin:'0 0 8px' }}>Peptides · 3rd Party Tested · Lab Verified Quality</p>
         <p style={{ color:'#374151',fontSize:'12px',margin:0 }}>For educational purposes only. Consult a healthcare professional before use.</p>

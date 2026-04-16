@@ -75,7 +75,7 @@ export default function AdminLayout({ children }) {
       <div style={{background:'#111',border:'1px solid #1f1f1f',borderRadius:'20px',padding:'36px 28px',width:'100%',maxWidth:'380px',boxShadow:'0 32px 64px rgba(0,0,0,0.5)'}}>
         <div style={{textAlign:'center',marginBottom:'32px'}}>
           <div style={{background:'#fff',borderRadius:'10px',padding:'8px 16px',display:'inline-block',marginBottom:'16px'}}>
-            <img src={LOGO} alt='BeSmart' style={{height:'28px',display:'block'}} />
+            <img src={LOGO} alt='BeSmart' style={{height:'52px',display:'block'}} />
           </div>
           <h1 style={{color:'#fff',fontSize:'20px',fontWeight:800,margin:0}}>Admin Portal</h1>
           <p style={{color:'#4b5563',fontSize:'12px',margin:'6px 0 0'}}>Leave email blank to sign in with your PIN</p>
@@ -113,7 +113,7 @@ export default function AdminLayout({ children }) {
       {/* Logo */}
       <div style={{padding:'20px 20px 12px',borderBottom:'1px solid #1a1a1a'}}>
         <div style={{background:'#fff',borderRadius:'8px',padding:'6px 12px',display:'inline-block'}}>
-          <img src={LOGO} alt='BeSmart' style={{height:'22px',display:'block'}} />
+          <img src={LOGO} alt='BeSmart' style={{height:'44px',display:'block'}} />
         </div>
       </div>
       {/* Sync button */}
@@ -150,7 +150,7 @@ export default function AdminLayout({ children }) {
           <div style={{position:'absolute',left:0,top:0,bottom:0,width:'280px',background:'#0f0f0f',borderRight:'1px solid #1a1a1a',display:'flex',flexDirection:'column',boxShadow:'4px 0 24px rgba(0,0,0,0.5)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'16px 20px',borderBottom:'1px solid #1a1a1a'}}>
               <div style={{background:'#fff',borderRadius:'8px',padding:'5px 12px'}}>
-                <img src={LOGO} alt='BeSmart' style={{height:'20px',display:'block'}} />
+                <img src={LOGO} alt='BeSmart' style={{height:'40px',display:'block'}} />
               </div>
               <button onClick={()=>setDrawerOpen(false)} style={{background:'transparent',border:'none',color:'#6b7280',fontSize:'24px',cursor:'pointer',padding:'4px',lineHeight:1}}>×</button>
             </div>
@@ -173,7 +173,7 @@ export default function AdminLayout({ children }) {
         <div className='mobile-only' style={{background:'#0f0f0f',borderBottom:'1px solid #1a1a1a',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:50}}>
           <button onClick={()=>setDrawerOpen(true)} style={{background:'transparent',border:'1px solid #2a2a2a',borderRadius:'8px',color:'#9ca3af',padding:'8px 12px',cursor:'pointer',fontSize:'18px',lineHeight:1}}>☰</button>
           <div style={{background:'#fff',borderRadius:'7px',padding:'4px 10px'}}>
-            <img src={LOGO} alt='BeSmart' style={{height:'18px',display:'block'}} />
+            <img src={LOGO} alt='BeSmart' style={{height:'36px',display:'block'}} />
           </div>
           <button onClick={syncAll} disabled={syncing} style={{background:'transparent',border:'1px solid rgba(16,185,129,0.25)',borderRadius:'8px',color:'#34d399',padding:'8px 10px',cursor:syncing?'not-allowed':'pointer',fontSize:'13px',fontWeight:600,whiteSpace:'nowrap'}}>
             {syncing?'...':'⟳'}
