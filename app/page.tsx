@@ -2,7 +2,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 
-const LOGO = 'https://images.squarespace-cdn.com/content/v1/69270d3f55d63e364a913bdd/68b6d2d1-03ce-44bb-88c2-85618d6a7eff/BeSmartAI.png?format=300w';
+const LOGO = '/logo.png';
 
 const PEPTIDE_DESCRIPTIONS = {
   '5 Amino 1MQ':  'Metabolic boost & fat loss support',
