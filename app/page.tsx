@@ -33,8 +33,8 @@ const ICONS = {
 
 
 function ContactForm() {
-  const [form, setForm] = React.useState({name:'',email:'',phone:'',goals:'',questions:''});
-  const [status, setStatus] = React.useState('');
+  const [form, setForm] = useState({name:'',email:'',phone:'',goals:'',questions:''});
+  const [status, setStatus] = useState('');
   const inp = {width:'100%',background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'10px',padding:'12px 14px',color:'#fff',fontSize:'15px',outline:'none',boxSizing:'border-box' as const};
   const lbl = {display:'block',color:'#9ca3af',fontSize:'13px',fontWeight:600,marginBottom:'6px'};
   const f = (k:string) => (e:any) => setForm(p=>({...p,[k]:e.target.value}));
