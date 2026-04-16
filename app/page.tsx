@@ -2,7 +2,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 
-const LOGO = '/logo.png';
+const LOGO = '/logo-dark.png';
 
 const PEPTIDE_DESCRIPTIONS = {
   '5 Amino 1MQ':  'Metabolic boost & fat loss support',
