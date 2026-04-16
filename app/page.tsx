@@ -83,9 +83,7 @@ export default function HomePage() {
 
       {/* Nav - Login button (not Admin Portal) */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(10,10,10,0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 24px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ background: '#fff', borderRadius: '8px', padding: '5px 14px' }}>
-          <img src={LOGO} alt='BeSmart Health' style={{ height: '28px', display: 'block' }} />
-        </div>
+        <img src={LOGO} alt='HealthEasy' style={{ height: '56px', display: 'block' }} />
         <a href='/admin' style={{ background: '#1a4fa8', color: '#fff', textDecoration: 'none', fontSize: '14px', padding: '9px 20px', borderRadius: '8px', fontWeight: 600 }}>Login</a>
       </nav>
 
