@@ -2,7 +2,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 
-const LOGO = 'https://images.squarespace-cdn.com/content/v1/69270d3f55d63e364a913bdd/68b6d2d1-03ce-44bb-88c2-85618d6a7eff/BeSmartAI.png?format=300w';
+const LOGO = '/logo-dark.png';
 
 export default function PostersPage() {
   const [posters, setPosters] = useState([]);
@@ -38,7 +38,7 @@ export default function PostersPage() {
       <nav style={{ position:'sticky',top:0,zIndex:100,background:'rgba(10,10,10,0.96)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'0 24px',height:'60px',display:'flex',alignItems:'center',justifyContent:'space-between' }}>
         <a href='/' style={{ textDecoration:'none' }}>
           <div style={{ background:'#fff',borderRadius:'7px',padding:'4px 12px' }}>
-            <img src={LOGO} alt='BeSmart Health' style={{ height:'26px',display:'block' }} />
+            <img src={LOGO} alt='BeSmart Health' style={{ height:'56px',display:'block' }} />
           </div>
         </a>
         <a href='/' style={{ color:'#9ca3af',textDecoration:'none',fontSize:'13px' }}>← Back to Home</a>
