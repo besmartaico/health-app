@@ -78,7 +78,7 @@ export default function PostersPage() {
         <div style={{ marginTop:'48px',background:'rgba(192,57,79,0.06)',border:'1px solid rgba(192,57,79,0.15)',borderRadius:'14px',padding:'24px',textAlign:'center' }}>
           <p style={{ color:'#9ca3af',fontSize:'13px',margin:0,lineHeight:1.6 }}>
             All peptides are compounded and 3rd party tested at 98%+ purity.<br />
-            <span style={{ color:'#6b7280' }}>For educational purposes only. Consult a healthcare professional before use.</span>
+            <span style={{ color:'#6b7280' }}></span>
           </p>
         </div>
       </div>

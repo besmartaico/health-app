@@ -157,7 +157,7 @@ export default function HomePage() {
           <img src={LOGO} alt='BeSmart Health' style={{ height:'24px',display:'block' }} />
         </div>
         <p style={{ color:'#4b5563',fontSize:'13px',margin:'0 0 8px' }}>Peptides · 3rd Party Tested · Lab Verified Quality</p>
-        <p style={{ color:'#374151',fontSize:'12px',margin:0 }}>For educational purposes only. Consult a healthcare professional before use.</p>
+        <p style={{ color:'#374151',fontSize:'12px',margin:0 }}></p>
       </footer>
     </div>
   );
