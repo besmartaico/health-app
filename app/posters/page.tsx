@@ -38,7 +38,6 @@ export default function PostersPage() {
       <nav style={{ position:'sticky',top:0,zIndex:100,background:'rgba(10,10,10,0.96)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'0 24px',height:'60px',display:'flex',alignItems:'center',justifyContent:'space-between' }}>
         <a href='/' style={{ textDecoration:'none' }}>
           <img src={LOGO} alt='HealthEasy' style={{ height:'56px',display:'block' }} />
-          </div>
         </a>
         <a href='/' style={{ color:'#9ca3af',textDecoration:'none',fontSize:'13px' }}>← Back to Home</a>
       </nav>
