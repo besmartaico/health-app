@@ -27,9 +27,10 @@ function getQty(r) {
 }
 function getVialSize(r) { return isLegacyRow(r) ? '' : (r[2]||'').trim(); }
 
-function rowToObj(r, i) {
+// id = actual sheet row number (1-based), so row 2 = first data row
+function rowToObj(r, sheetRowNum) {
   return {
-    id:            String(i),
+    id:            String(sheetRowNum),
     itemType:      r[0]  || '',
     name:          r[1]  || '',
     vialSize:      getVialSize(r),
@@ -62,17 +63,31 @@ function toRow(item, isNew) {
   ];
 }
 
+// Get sheet metadata to find the Inventory sheet ID (needed for row deletion)
+async function getSheetId(sheets, spreadsheetId) {
+  const meta = await sheets.spreadsheets.get({ spreadsheetId });
+  const sheet = meta.data.sheets.find((s) => s.properties.title === 'Inventory');
+  return sheet ? sheet.properties.sheetId : 0;
+}
+
 export async function GET() {
   try {
     const sheets = getSheets();
     const res = await sheets.spreadsheets.values.get({ spreadsheetId: SID(), range: 'Inventory!A2:L' });
-    const items = (res.data.values || []).map((r, i) => rowToObj(r, i));
+    const rows = res.data.values || [];
+    const items = [];
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      // Skip completely empty rows (from old clear-based deletes)
+      if (!r || !r[0] && !r[1]) continue;
+      items.push(rowToObj(r, i + 2)); // i+2 = actual sheet row (row 1 is header)
+    }
     return NextResponse.json({ items });
   } catch(e) { return NextResponse.json({ items: [], error: String(e) }, { status: 500 }); }
 }
 
 export async function POST(req) {
-  const { action, index, item, adjustment } = await req.json();
+  const { action, item, adjustment } = await req.json();
   try {
     const sheets = getSheets();
     const sid = SID();
@@ -86,7 +101,8 @@ export async function POST(req) {
     }
 
     if (action === 'update') {
-      const rowNum = Number(index) + 2;
+      // item.id is the real sheet row number
+      const rowNum = Number(item.id);
       await sheets.spreadsheets.values.update({
         spreadsheetId: sid, range: `Inventory!A${rowNum}:L${rowNum}`, valueInputOption: 'RAW',
         requestBody: { values: [toRow(item, false)] },
@@ -95,7 +111,7 @@ export async function POST(req) {
     }
 
     if (action === 'adjust') {
-      const rowNum = Number(index) + 2;
+      const rowNum = Number(item.id);
       await sheets.spreadsheets.values.update({
         spreadsheetId: sid, range: `Inventory!D${rowNum}`, valueInputOption: 'RAW',
         requestBody: { values: [[String(adjustment.newQty)]] },
@@ -113,27 +129,25 @@ export async function POST(req) {
     }
 
     if (action === 'delete') {
-      const rowNum = Number(index) + 2;
-      await sheets.spreadsheets.values.clear({ spreadsheetId: sid, range: `Inventory!A${rowNum}:L${rowNum}` });
-      return NextResponse.json({ success: true });
-    }
-
-    if (action === 'migrate') {
-      const res = await sheets.spreadsheets.values.get({ spreadsheetId: sid, range: 'Inventory!A2:L' });
-      const rows = res.data.values || [];
-      const updates = [];
-      for (let i = 0; i < rows.length; i++) {
-        if (isLegacyRow(rows[i])) {
-          updates.push({ range: `Inventory!C${i+2}:D${i+2}`, values: [['', getQty(rows[i])]] });
+      // Physically delete the row so indexes stay clean
+      const rowNum = Number(item.id);
+      const sheetId = await getSheetId(sheets, sid);
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: sid,
+        requestBody: {
+          requests: [{
+            deleteDimension: {
+              range: {
+                sheetId,
+                dimension: 'ROWS',
+                startIndex: rowNum - 1, // 0-based
+                endIndex: rowNum,
+              }
+            }
+          }]
         }
-      }
-      if (updates.length > 0) {
-        await sheets.spreadsheets.values.batchUpdate({
-          spreadsheetId: sid,
-          requestBody: { valueInputOption: 'RAW', data: updates },
-        });
-      }
-      return NextResponse.json({ success: true, fixed: updates.length });
+      });
+      return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
