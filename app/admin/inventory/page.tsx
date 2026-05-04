@@ -66,7 +66,7 @@ export default function InventoryPage() {
     setSaving(true);
     try {
       const res = await fetch('/api/inventory', { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ action:'adjust', index: adjItem.id, item: adjItem,
+        body: JSON.stringify({ action:'adjust', item: adjItem,
           adjustment: { type: adjDef.label, amount: adjAmtNum, newQty, notes: adjNotes } }) });
       const d = await res.json();
       if (d.error) showT('Error: '+d.error, true);
@@ -90,7 +90,7 @@ export default function InventoryPage() {
     setSaving(true);
     try {
       const res = await fetch('/api/inventory', { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ action: editIdx!==null?'update':'add', index: editIdx, item: form }) });
+        body: JSON.stringify({ action: editIdx!==null?'update':'add', item: editIdx!==null?{...form,id:String(editIdx)}:form }) });
       const d = await res.json();
       if (d.error) showT('Error: '+d.error, true);
       else { showT(editIdx!==null?'Updated!':'Added!', false); setShowEdit(false); setForm({...EMPTY}); setEditIdx(null); await load(); }
@@ -101,7 +101,7 @@ export default function InventoryPage() {
   const del = async (item) => {
     if (!confirm('Delete '+item.name+'?')) return;
     await fetch('/api/inventory', { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'delete', index: item.id }) });
+      body: JSON.stringify({ action:'delete', item }) });
     await load();
   };
 
