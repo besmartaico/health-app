@@ -90,7 +90,7 @@ export default function SalesPage() {
   });
 
   // Unique customers for filter dropdown
-  const customers = [...new Set(sales.map((s:any)=>s.customer||'').filter(Boolean))].sort();
+  const customers = Array.from(new Set(sales.map((s:any)=>s.customer||'').filter(Boolean))).sort();
 
   // Total of filtered results
   const totalAmt = filtered.reduce((sum:number,s:any)=>sum+(parseFloat(s.total)||0),0);
