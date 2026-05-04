@@ -33,6 +33,7 @@ export default function SalesPage() {
   const [customFrom, setCustomFrom]   = useState('');
   const [customTo, setCustomTo]       = useState('');
   const [customerFilter, setCustomerFilter] = useState('');
+  const [productFilter, setProductFilter]   = useState('');
   const dragIdx = useRef<any>(null);
   const dragOverIdx = useRef<any>(null);
 
@@ -83,6 +84,10 @@ export default function SalesPage() {
 
   const filtered = sales.filter((s:any)=>{
     if (customerFilter && s.customer!==customerFilter) return false;
+    if (productFilter) {
+      const ls = parseLines(s.lines);
+      if (!ls.some((l:any)=>(l.product||l.name||'').toLowerCase().includes(productFilter.toLowerCase()))) return false;
+    }
     if (dateFrom||dateTo) {
       const d=new Date(s.date);
       if (isNaN(d.getTime())) return true;
@@ -107,6 +112,9 @@ export default function SalesPage() {
   });
 
   const customers = Array.from(new Set(sales.map((s:any)=>s.customer||'').filter(Boolean))).sort();
+  const products = Array.from(new Set(
+    sales.flatMap((s:any)=>parseLines(s.lines).map((l:any)=>l.product||l.name||'').filter(Boolean))
+  )).sort();
   const totalAmt = filtered.reduce((sum:number,s:any)=>sum+(parseFloat(s.total)||0),0);
 
   const PRESETS = [
@@ -162,8 +170,16 @@ export default function SalesPage() {
             {customers.map((c:any)=><option key={c} value={c}>{c}</option>)}
           </select>
         </div>
-        {(customerFilter||datePreset!=='thisMonth')&&(
-          <button onClick={()=>{setCustomerFilter('');setDatePreset('thisMonth');setCustomFrom('');setCustomTo('');}} style={{background:'transparent',border:'1px solid #3a3a3a',color:'#6b7280',borderRadius:'7px',padding:'7px 12px',fontSize:'12px',cursor:'pointer',alignSelf:'flex-end'}}>✕ Clear</button>
+        {/* Product dropdown */}
+        <div>
+          <p style={{color:'#6b7280',fontSize:'11px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',margin:'0 0 6px'}}>Product</p>
+          <select value={productFilter} onChange={e=>setProductFilter(e.target.value)} style={selStyle}>
+            <option value=''>All Products</option>
+            {products.map((p:any)=><option key={p} value={p}>{p}</option>)}
+          </select>
+        </div>
+        {(customerFilter||productFilter||datePreset!=='thisMonth')&&(
+          <button onClick={()=>{setCustomerFilter('');setProductFilter('');setDatePreset('thisMonth');setCustomFrom('');setCustomTo('');}} style={{background:'transparent',border:'1px solid #3a3a3a',color:'#6b7280',borderRadius:'7px',padding:'7px 12px',fontSize:'12px',cursor:'pointer',alignSelf:'flex-end'}}>✕ Clear</button>
         )}
       </div>
 
