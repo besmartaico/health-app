@@ -28,16 +28,22 @@ export default function SalesPage() {
   const [sales, setSales]             = useState([]);
   const [loading, setLoading]         = useState(true);
   // Sort: activeSorts = ordered array of {col, dir} only for cols user has clicked
-  const [activeSorts, setActiveSorts] = useState<any[]>([]);
-  const [datePreset, setDatePreset]   = useState('thisMonth');
-  const [customFrom, setCustomFrom]   = useState('');
-  const [customTo, setCustomTo]       = useState('');
-  const [customerFilter, setCustomerFilter] = useState('');
-  const [productFilter, setProductFilter]   = useState('');
+  const [activeSorts, setActiveSorts] = useState<any[]>(()=>{ try{ const v=localStorage.getItem('sales_activeSorts'); return v?JSON.parse(v):[]; }catch{return[];} });
+  const [datePreset, setDatePreset]   = useState(()=>{ try{ return localStorage.getItem('sales_datePreset')||'thisMonth'; }catch{return'thisMonth';} });
+  const [customFrom, setCustomFrom]   = useState(()=>{ try{ return localStorage.getItem('sales_customFrom')||''; }catch{return'';} });
+  const [customTo, setCustomTo]       = useState(()=>{ try{ return localStorage.getItem('sales_customTo')||''; }catch{return'';} });
+  const [customerFilter, setCustomerFilter] = useState(()=>{ try{ return localStorage.getItem('sales_customerFilter')||''; }catch{return'';} });
+  const [productFilter, setProductFilter]   = useState(()=>{ try{ return localStorage.getItem('sales_productFilter')||''; }catch{return'';} });
   const dragIdx = useRef<any>(null);
   const dragOverIdx = useRef<any>(null);
 
   useEffect(()=>{ load(); },[]);
+  useEffect(()=>{ try{ localStorage.setItem('sales_activeSorts', JSON.stringify(activeSorts)); }catch{} },[activeSorts]);
+  useEffect(()=>{ try{ localStorage.setItem('sales_datePreset', datePreset); }catch{} },[datePreset]);
+  useEffect(()=>{ try{ localStorage.setItem('sales_customFrom', customFrom); }catch{} },[customFrom]);
+  useEffect(()=>{ try{ localStorage.setItem('sales_customTo', customTo); }catch{} },[customTo]);
+  useEffect(()=>{ try{ localStorage.setItem('sales_customerFilter', customerFilter); }catch{} },[customerFilter]);
+  useEffect(()=>{ try{ localStorage.setItem('sales_productFilter', productFilter); }catch{} },[productFilter]);
   async function load() {
     setLoading(true);
     const d = await fetch('/api/sales').then(r=>r.json());
