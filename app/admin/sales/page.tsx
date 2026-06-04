@@ -302,19 +302,31 @@ export default function SalesPage() {
             <div style={{marginBottom:'14px'}}>
               <label style={{display:'block',color:'#9ca3af',fontSize:'12px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:'8px'}}>Products <span style={{color:'#f87171'}}>*</span></label>
               {newSaleForm.lineItems.map((line:any,i:number)=>(
-                <div key={i} style={{display:'grid',gridTemplateColumns:'1fr 80px 70px 32px',gap:'6px',marginBottom:'8px',alignItems:'center'}}>
-                  <select value={line.product} onChange={e=>setLine(i,'product',e.target.value)} style={{background:'#111',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'8px 10px',color:line.product?'#fff':'#6b7280',fontSize:'13px'}}>
+                <div key={i} style={{background:'#111',border:'1px solid #2a2a2a',borderRadius:'10px',padding:'10px 12px',marginBottom:'8px'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
+                    <span style={{color:'#6b7280',fontSize:'11px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em'}}>Item {i+1}</span>
+                    {newSaleForm.lineItems.length>1&&<button onClick={()=>removeLine(i)} style={{background:'transparent',border:'none',color:'#f87171',cursor:'pointer',fontSize:'18px',lineHeight:1,padding:0}}>×</button>}
+                  </div>
+                  {/* Product dropdown - full width */}
+                  <select value={line.product} onChange={e=>setLine(i,'product',e.target.value)} style={{width:'100%',background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'8px 10px',color:line.product?'#fff':'#6b7280',fontSize:'14px',marginBottom:'8px'}}>
                     <option value=''>Select product...</option>
                     {inventory.map((it:any)=><option key={it.id} value={it.name}>{it.name}</option>)}
                   </select>
-                  <div style={{position:'relative'}}>
-                    <span style={{position:'absolute',left:'8px',top:'50%',transform:'translateY(-50%)',color:'#4b5563',fontSize:'13px'}}>$</span>
-                    <input type='number' placeholder='0.00' value={line.price} onChange={e=>setLine(i,'price',e.target.value)} style={{width:'100%',background:'#111',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'8px 8px 8px 20px',color:'#fff',fontSize:'13px'}}/>
+                  {/* Qty + Price on same row */}
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
+                    <div>
+                      <label style={{display:'block',color:'#6b7280',fontSize:'11px',marginBottom:'4px'}}>Qty</label>
+                      <input type='number' min='1' value={line.qty} onChange={e=>setLine(i,'qty',e.target.value)} style={{width:'100%',background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'8px 10px',color:'#fff',fontSize:'14px'}}/>
+                    </div>
+                    <div>
+                      <label style={{display:'block',color:'#6b7280',fontSize:'11px',marginBottom:'4px'}}>Price ($)</label>
+                      <div style={{position:'relative'}}>
+                        <span style={{position:'absolute',left:'10px',top:'50%',transform:'translateY(-50%)',color:'#4b5563'}}>$</span>
+                        <input type='number' step='0.01' placeholder='0.00' value={line.price} onChange={e=>setLine(i,'price',e.target.value)} style={{width:'100%',background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'8px 8px 8px 22px',color:'#fff',fontSize:'14px'}}/>
+                      </div>
+                    </div>
                   </div>
-                  <input type='number' placeholder='Qty' min='1' value={line.qty} onChange={e=>setLine(i,'qty',e.target.value)} style={{background:'#111',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'8px',color:'#fff',fontSize:'13px',textAlign:'center'}}/>
-                  {newSaleForm.lineItems.length>1
-                    ?<button onClick={()=>removeLine(i)} style={{background:'transparent',border:'1px solid #3a3a3a',color:'#f87171',borderRadius:'6px',padding:'4px 8px',cursor:'pointer',fontSize:'16px',lineHeight:1}}>×</button>
-                    :<div/>}
+                  {line.product&&line.price&&line.qty&&<div style={{textAlign:'right',marginTop:'6px',color:'#34d399',fontSize:'12px',fontWeight:600}}>Subtotal: ${(parseFloat(line.price||0)*parseFloat(line.qty||1)).toFixed(2)}</div>}
                 </div>
               ))}
               <button onClick={addLine} style={{background:'transparent',border:'1px dashed #2a2a2a',color:'#6b7280',borderRadius:'8px',padding:'7px 14px',cursor:'pointer',fontSize:'13px',width:'100%',marginTop:'4px'}}>+ Add Product</button>
