@@ -77,7 +77,7 @@ export default function SalesPage() {
   }
   function openEdit(s:any) {
     const lineItems = (() => { try{ const arr=JSON.parse(s.lines||'[]'); return arr.length?arr.map((l:any)=>({product:l.product||'',price:String(l.price||''),qty:String(l.qty||1)})):[{product:'',price:'',qty:'1'}]; }catch{return [{product:'',price:'',qty:'1'}];} })();
-    const weeksReorder = s.nextRefillDate ? String(Math.round((new Date(s.nextRefillDate).getTime()-Date.now())/(7*86400000))) : '';
+    const weeksReorder = s.nextRefillDate ? String(Math.round((new Date((s.nextRefillDate||'')+'T12:00:00').getTime()-Date.now())/(7*86400000))) : '';
     setNewSaleForm({customer:s.customer||'',date:s.date||new Date().toISOString().split('T')[0],referredBy:s.referredBy||'',notes:s.notes||'',weeksReorder,lineItems});
     setEditSale({sale:s,index:Number(s.id)});
     setShowNewSale(true);
@@ -277,7 +277,7 @@ export default function SalesPage() {
                 const lineItems = parseLines(s.lines);
                 return (
                   <tr key={i} onMouseOver={e=>(e.currentTarget.style.background='#1f1f1f')} onMouseOut={e=>(e.currentTarget.style.background='transparent')}>
-                    <td style={{...td,color:'#9ca3af',whiteSpace:'nowrap'}}>{s.date?new Date(s.date).toLocaleDateString():'-'}</td>
+                    <td style={{...td,color:'#9ca3af',whiteSpace:'nowrap'}}>{s.date?new Date(s.date+'T12:00:00').toLocaleDateString():'-'}</td>
                     <td style={{...td,color:'#fff',fontWeight:600}}>{s.customer||'-'}</td>
                     <td style={{...td,color:'#34d399',fontWeight:700}}>{s.total?'$'+parseFloat(s.total).toFixed(2):'-'}</td>
                     <td style={td}>
