@@ -150,6 +150,6 @@ export async function POST(req) {
       return NextResponse.json({ success: true });
     }
 
-    return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
+    if(action==='setup'){try{const meta=await sheets.spreadsheets.get({spreadsheetId:sid});const exists=meta.data.sheets.some((s:any)=>s.properties.title==='InventoryAudit');if(!exists){await sheets.spreadsheets.batchUpdate({spreadsheetId:sid,requestBody:{requests:[{addSheet:{properties:{title:'InventoryAudit'}}}]}});await sheets.spreadsheets.values.update({spreadsheetId:sid,range:'InventoryAudit!A1:H1',valueInputOption:'RAW',requestBody:{values:[['Timestamp','Action','RowId','Name','Quantity','ItemType','Notes','FullData']]}});}return NextResponse.json({success:true,existed:exists});}catch(e){return NextResponse.json({error:String(e)},{status:500});}}    return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch(e) { return NextResponse.json({ error: String(e) }, { status: 500 }); }
 }

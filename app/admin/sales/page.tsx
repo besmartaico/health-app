@@ -34,10 +34,20 @@ export default function SalesPage() {
   const [customTo, setCustomTo]       = useState(()=>{ try{ return localStorage.getItem('sales_customTo')||''; }catch{return'';} });
   const [customerFilter, setCustomerFilter] = useState(()=>{ try{ return localStorage.getItem('sales_customerFilter')||''; }catch{return'';} });
   const [productFilter, setProductFilter]   = useState(()=>{ try{ return localStorage.getItem('sales_productFilter')||''; }catch{return'';} });
+  const [showNewSale, setShowNewSale] = useState(false);
+  const [newSaleForm, setNewSaleForm] = useState({customer:'',date:new Date().toISOString().split('T')[0],total:'',notes:'',referredBy:'',products:''});
   const dragIdx = useRef<any>(null);
   const dragOverIdx = useRef<any>(null);
 
   useEffect(()=>{ load(); },[]);
+  async function saveNewSale() {
+    if (!newSaleForm.customer || !newSaleForm.total) return;
+    const lines = newSaleForm.products ? JSON.stringify(newSaleForm.products.split(',').map((p:string)=>({product:p.trim(),qty:1}))) : '[]';
+    await fetch('/api/sales',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'add',sale:{...newSaleForm,lines}})});
+    setShowNewSale(false);
+    setNewSaleForm({customer:'',date:new Date().toISOString().split('T')[0],total:'',notes:'',referredBy:'',products:''});
+    await load();
+  }
   useEffect(()=>{ try{ localStorage.setItem('sales_activeSorts', JSON.stringify(activeSorts)); }catch{} },[activeSorts]);
   useEffect(()=>{ try{ localStorage.setItem('sales_datePreset', datePreset); }catch{} },[datePreset]);
   useEffect(()=>{ try{ localStorage.setItem('sales_customFrom', customFrom); }catch{} },[customFrom]);
@@ -254,6 +264,29 @@ export default function SalesPage() {
           </table>
         )}
       </div>
+      {showNewSale&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.8)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+          <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'16px',padding:'28px',maxWidth:'500px',width:'100%',maxHeight:'90vh',overflowY:'auto'}}>
+            <h2 style={{color:'#fff',fontWeight:800,fontSize:'18px',margin:'0 0 20px'}}>New Sale</h2>
+            {['customer','date','total','products','referredBy','notes'].map((field:string)=>(
+              <div key={field} style={{marginBottom:'14px'}}>
+                <label style={{display:'block',color:'#9ca3af',fontSize:'12px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:'6px'}}>
+                  {field==='total'?'Total ($)':field==='referredBy'?'Referred By':field==='products'?'Products (comma separated)':field.charAt(0).toUpperCase()+field.slice(1)}
+                  {(field==='customer'||field==='total')&&<span style={{color:'#f87171'}}> *</span>}
+                </label>
+                {field==='notes'||field==='products'
+                  ?<textarea value={(newSaleForm as any)[field]} onChange={e=>setNewSaleForm((p:any)=>({...p,[field]:e.target.value}))} rows={3} style={{width:'100%',background:'#111',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'9px 12px',color:'#fff',fontSize:'14px',resize:'vertical',boxSizing:'border-box'}}/>
+                  :<input type={field==='date'?'date':field==='total'?'number':'text'} value={(newSaleForm as any)[field]} onChange={e=>setNewSaleForm((p:any)=>({...p,[field]:e.target.value}))} style={{width:'100%',background:'#111',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'9px 12px',color:'#fff',fontSize:'14px',boxSizing:'border-box',colorScheme:'dark'}}/>
+                }
+              </div>
+            ))}
+            <div style={{display:'flex',gap:'10px',justifyContent:'flex-end',marginTop:'8px'}}>
+              <button onClick={()=>setShowNewSale(false)} style={{background:'transparent',border:'1px solid #3a3a3a',color:'#9ca3af',borderRadius:'8px',padding:'8px 18px',cursor:'pointer',fontSize:'14px'}}>Cancel</button>
+              <button onClick={saveNewSale} style={{background:'#1a4fa8',color:'#fff',border:'none',borderRadius:'8px',padding:'8px 18px',cursor:'pointer',fontSize:'14px',fontWeight:700}}>Save Sale</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
