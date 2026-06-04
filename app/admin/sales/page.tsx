@@ -34,19 +34,35 @@ export default function SalesPage() {
   const [customTo, setCustomTo]       = useState(()=>{ try{ return localStorage.getItem('sales_customTo')||''; }catch{return'';} });
   const [customerFilter, setCustomerFilter] = useState(()=>{ try{ return localStorage.getItem('sales_customerFilter')||''; }catch{return'';} });
   const [productFilter, setProductFilter]   = useState(()=>{ try{ return localStorage.getItem('sales_productFilter')||''; }catch{return'';} });
-  const [showNewSale, setShowNewSale] = useState(false);
-  const [newSaleForm, setNewSaleForm] = useState({customer:'',date:new Date().toISOString().split('T')[0],total:'',notes:'',referredBy:'',products:''});
+  const [showNewSale, setShowNewSale]   = useState(false);
+  const [inventory, setInventory]       = useState<any[]>([]);
+  const EMPTY_SALE = {customer:'',date:new Date().toISOString().split('T')[0],referredBy:'',notes:'',weeksReorder:'',lineItems:[{product:'',price:'',qty:'1'}]};
+  const [newSaleForm, setNewSaleForm]   = useState<any>(EMPTY_SALE);
   const dragIdx = useRef<any>(null);
   const dragOverIdx = useRef<any>(null);
 
   useEffect(()=>{ load(); },[]);
+  useEffect(()=>{ if(showNewSale) fetch('/api/inventory').then(r=>r.json()).then(d=>setInventory(d.items||[])); },[showNewSale]);
+  function addLine() { setNewSaleForm((p:any)=>({...p,lineItems:[...p.lineItems,{product:'',price:'',qty:'1'}]})); }
+  function removeLine(i:number) { setNewSaleForm((p:any)=>({...p,lineItems:p.lineItems.filter((_:any,j:number)=>j!==i)})); }
+  function setLine(i:number,field:string,val:string) {
+    setNewSaleForm((p:any)=>{
+      const li=[...p.lineItems]; li[i]={...li[i],[field]:val};
+      // Auto-fill price from inventory when product selected
+      if(field==='product'){
+        const inv=inventory.find((it:any)=>it.name===val);
+        if(inv&&inv.priceStandard) li[i].price=inv.priceStandard;
+      }
+      return {...p,lineItems:li};
+    });
+  }
+  const saleTotal = newSaleForm.lineItems.reduce((s:number,l:any)=>s+(parseFloat(l.price||0)*parseFloat(l.qty||1)),0);
   async function saveNewSale() {
-    if (!newSaleForm.customer || !newSaleForm.total) return;
-    const lines = newSaleForm.products ? JSON.stringify(newSaleForm.products.split(',').map((p:string)=>({product:p.trim(),qty:1}))) : '[]';
-    await fetch('/api/sales',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'add',sale:{...newSaleForm,lines}})});
-    setShowNewSale(false);
-    setNewSaleForm({customer:'',date:new Date().toISOString().split('T')[0],total:'',notes:'',referredBy:'',products:''});
-    await load();
+    if(!newSaleForm.customer||newSaleForm.lineItems.every((l:any)=>!l.product)) return;
+    const lines = JSON.stringify(newSaleForm.lineItems.filter((l:any)=>l.product).map((l:any)=>({product:l.product,price:parseFloat(l.price||0),qty:parseFloat(l.qty||1)})));
+    const nextRefillDate = newSaleForm.weeksReorder ? new Date(Date.now()+parseInt(newSaleForm.weeksReorder)*7*86400000).toISOString().split('T')[0] : '';
+    await fetch('/api/sales',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'add',sale:{...newSaleForm,lines,total:saleTotal.toFixed(2),nextRefillDate}})});
+    setShowNewSale(false); setNewSaleForm(EMPTY_SALE); await load();
   }
   useEffect(()=>{ try{ localStorage.setItem('sales_activeSorts', JSON.stringify(activeSorts)); }catch{} },[activeSorts]);
   useEffect(()=>{ try{ localStorage.setItem('sales_datePreset', datePreset); }catch{} },[datePreset]);
@@ -266,24 +282,72 @@ export default function SalesPage() {
         )}
       </div>
       {showNewSale&&(
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.8)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
-          <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'16px',padding:'28px',maxWidth:'500px',width:'100%',maxHeight:'90vh',overflowY:'auto'}}>
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+          <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'16px',padding:'28px',maxWidth:'560px',width:'100%',maxHeight:'92vh',overflowY:'auto'}}>
             <h2 style={{color:'#fff',fontWeight:800,fontSize:'18px',margin:'0 0 20px'}}>New Sale</h2>
-            {['customer','date','total','products','referredBy','notes'].map((field:string)=>(
-              <div key={field} style={{marginBottom:'14px'}}>
-                <label style={{display:'block',color:'#9ca3af',fontSize:'12px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:'6px'}}>
-                  {field==='total'?'Total ($)':field==='referredBy'?'Referred By':field==='products'?'Products (comma separated)':field.charAt(0).toUpperCase()+field.slice(1)}
-                  {(field==='customer'||field==='total')&&<span style={{color:'#f87171'}}> *</span>}
-                </label>
-                {field==='notes'||field==='products'
-                  ?<textarea value={(newSaleForm as any)[field]} onChange={e=>setNewSaleForm((p:any)=>({...p,[field]:e.target.value}))} rows={3} style={{width:'100%',background:'#111',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'9px 12px',color:'#fff',fontSize:'14px',resize:'vertical',boxSizing:'border-box'}}/>
-                  :<input type={field==='date'?'date':field==='total'?'number':'text'} value={(newSaleForm as any)[field]} onChange={e=>setNewSaleForm((p:any)=>({...p,[field]:e.target.value}))} style={{width:'100%',background:'#111',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'9px 12px',color:'#fff',fontSize:'14px',boxSizing:'border-box',colorScheme:'dark'}}/>
-                }
+            {/* Customer dropdown */}
+            <div style={{marginBottom:'14px'}}>
+              <label style={{display:'block',color:'#9ca3af',fontSize:'12px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:'6px'}}>Customer <span style={{color:'#f87171'}}>*</span></label>
+              <select value={newSaleForm.customer} onChange={e=>setNewSaleForm((p:any)=>({...p,customer:e.target.value}))} style={{width:'100%',background:'#111',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'9px 12px',color:newSaleForm.customer?'#fff':'#6b7280',fontSize:'14px'}}>
+                <option value=''>Select customer...</option>
+                {customers.map((c:any)=><option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            {/* Date */}
+            <div style={{marginBottom:'14px'}}>
+              <label style={{display:'block',color:'#9ca3af',fontSize:'12px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:'6px'}}>Date</label>
+              <input type='date' value={newSaleForm.date} onChange={e=>setNewSaleForm((p:any)=>({...p,date:e.target.value}))} style={{width:'100%',background:'#111',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'9px 12px',color:'#fff',fontSize:'14px',colorScheme:'dark'}}/>
+            </div>
+            {/* Line items */}
+            <div style={{marginBottom:'14px'}}>
+              <label style={{display:'block',color:'#9ca3af',fontSize:'12px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:'8px'}}>Products <span style={{color:'#f87171'}}>*</span></label>
+              {newSaleForm.lineItems.map((line:any,i:number)=>(
+                <div key={i} style={{display:'grid',gridTemplateColumns:'1fr 80px 70px 32px',gap:'6px',marginBottom:'8px',alignItems:'center'}}>
+                  <select value={line.product} onChange={e=>setLine(i,'product',e.target.value)} style={{background:'#111',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'8px 10px',color:line.product?'#fff':'#6b7280',fontSize:'13px'}}>
+                    <option value=''>Select product...</option>
+                    {inventory.map((it:any)=><option key={it.id} value={it.name}>{it.name}</option>)}
+                  </select>
+                  <div style={{position:'relative'}}>
+                    <span style={{position:'absolute',left:'8px',top:'50%',transform:'translateY(-50%)',color:'#4b5563',fontSize:'13px'}}>$</span>
+                    <input type='number' placeholder='0.00' value={line.price} onChange={e=>setLine(i,'price',e.target.value)} style={{width:'100%',background:'#111',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'8px 8px 8px 20px',color:'#fff',fontSize:'13px'}}/>
+                  </div>
+                  <input type='number' placeholder='Qty' min='1' value={line.qty} onChange={e=>setLine(i,'qty',e.target.value)} style={{background:'#111',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'8px',color:'#fff',fontSize:'13px',textAlign:'center'}}/>
+                  {newSaleForm.lineItems.length>1
+                    ?<button onClick={()=>removeLine(i)} style={{background:'transparent',border:'1px solid #3a3a3a',color:'#f87171',borderRadius:'6px',padding:'4px 8px',cursor:'pointer',fontSize:'16px',lineHeight:1}}>×</button>
+                    :<div/>}
+                </div>
+              ))}
+              <button onClick={addLine} style={{background:'transparent',border:'1px dashed #2a2a2a',color:'#6b7280',borderRadius:'8px',padding:'7px 14px',cursor:'pointer',fontSize:'13px',width:'100%',marginTop:'4px'}}>+ Add Product</button>
+            </div>
+            {/* Total */}
+            <div style={{background:'#111',borderRadius:'8px',padding:'12px 16px',marginBottom:'14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span style={{color:'#9ca3af',fontSize:'13px',fontWeight:600}}>Total</span>
+              <span style={{color:'#34d399',fontSize:'20px',fontWeight:800}}>${saleTotal.toFixed(2)}</span>
+            </div>
+            {/* Weeks to reorder */}
+            <div style={{marginBottom:'14px'}}>
+              <label style={{display:'block',color:'#9ca3af',fontSize:'12px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:'6px'}}>Weeks Until Reorder</label>
+              <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+                {['4','8','10','12','16'].map(w=>(
+                  <button key={w} onClick={()=>setNewSaleForm((p:any)=>({...p,weeksReorder:p.weeksReorder===w?'':w}))} style={{background:newSaleForm.weeksReorder===w?'rgba(26,79,168,0.25)':'#111',border:'1px solid',borderColor:newSaleForm.weeksReorder===w?'#1a4fa8':'#2a2a2a',color:newSaleForm.weeksReorder===w?'#6b9ee8':'#9ca3af',borderRadius:'8px',padding:'6px 14px',cursor:'pointer',fontSize:'13px',fontWeight:newSaleForm.weeksReorder===w?700:400}}>{w} wks</button>
+                ))}
+                <input type='number' placeholder='Custom' value={['4','8','10','12','16'].includes(newSaleForm.weeksReorder)?'':newSaleForm.weeksReorder} onChange={e=>setNewSaleForm((p:any)=>({...p,weeksReorder:e.target.value}))} style={{width:'80px',background:'#111',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'6px 10px',color:'#fff',fontSize:'13px'}}/>
               </div>
-            ))}
-            <div style={{display:'flex',gap:'10px',justifyContent:'flex-end',marginTop:'8px'}}>
-              <button onClick={()=>setShowNewSale(false)} style={{background:'transparent',border:'1px solid #3a3a3a',color:'#9ca3af',borderRadius:'8px',padding:'8px 18px',cursor:'pointer',fontSize:'14px'}}>Cancel</button>
-              <button onClick={saveNewSale} style={{background:'#1a4fa8',color:'#fff',border:'none',borderRadius:'8px',padding:'8px 18px',cursor:'pointer',fontSize:'14px',fontWeight:700}}>Save Sale</button>
+              {newSaleForm.weeksReorder&&<p style={{color:'#4b5563',fontSize:'11px',margin:'6px 0 0'}}>Next refill: {new Date(Date.now()+parseInt(newSaleForm.weeksReorder)*7*86400000).toLocaleDateString()}</p>}
+            </div>
+            {/* Referred by */}
+            <div style={{marginBottom:'14px'}}>
+              <label style={{display:'block',color:'#9ca3af',fontSize:'12px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:'6px'}}>Referred By</label>
+              <input value={newSaleForm.referredBy} onChange={e=>setNewSaleForm((p:any)=>({...p,referredBy:e.target.value}))} placeholder='Name of referrer (optional)' style={{width:'100%',background:'#111',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'9px 12px',color:'#fff',fontSize:'14px'}}/>
+            </div>
+            {/* Notes */}
+            <div style={{marginBottom:'20px'}}>
+              <label style={{display:'block',color:'#9ca3af',fontSize:'12px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:'6px'}}>Notes</label>
+              <textarea value={newSaleForm.notes} onChange={e=>setNewSaleForm((p:any)=>({...p,notes:e.target.value}))} rows={2} style={{width:'100%',background:'#111',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'9px 12px',color:'#fff',fontSize:'14px',resize:'vertical'}}/>
+            </div>
+            <div style={{display:'flex',gap:'10px',justifyContent:'flex-end'}}>
+              <button onClick={()=>{setShowNewSale(false);setNewSaleForm(EMPTY_SALE);}} style={{background:'transparent',border:'1px solid #3a3a3a',color:'#9ca3af',borderRadius:'8px',padding:'8px 18px',cursor:'pointer',fontSize:'14px'}}>Cancel</button>
+              <button onClick={saveNewSale} disabled={!newSaleForm.customer} style={{background:'#1a4fa8',color:'#fff',border:'none',borderRadius:'8px',padding:'8px 20px',cursor:'pointer',fontSize:'14px',fontWeight:700,opacity:newSaleForm.customer?1:0.5}}>Save Sale</button>
             </div>
           </div>
         </div>
