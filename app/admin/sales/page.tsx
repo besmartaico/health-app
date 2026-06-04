@@ -35,9 +35,11 @@ export default function SalesPage() {
   const [customerFilter, setCustomerFilter] = useState(()=>{ try{ return localStorage.getItem('sales_customerFilter')||''; }catch{return'';} });
   const [productFilter, setProductFilter]   = useState(()=>{ try{ return localStorage.getItem('sales_productFilter')||''; }catch{return'';} });
   const [showNewSale, setShowNewSale]   = useState(false);
+  const [editSale, setEditSale]         = useState<any>(null); // {sale, index} when editing
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [inventory, setInventory]       = useState<any[]>([]);
-  const EMPTY_SALE = {customer:'',date:new Date().toISOString().split('T')[0],referredBy:'',notes:'',weeksReorder:'',lineItems:[{product:'',price:'',qty:'1'}]};
-  const [newSaleForm, setNewSaleForm]   = useState<any>(EMPTY_SALE);
+  const freshSale = () => ({customer:'',date:new Date().toISOString().split('T')[0],referredBy:'',notes:'',weeksReorder:'',lineItems:[{product:'',price:'',qty:'1'}]});
+  const [newSaleForm, setNewSaleForm]   = useState<any>(freshSale());
   const dragIdx = useRef<any>(null);
   const dragOverIdx = useRef<any>(null);
 
@@ -61,8 +63,24 @@ export default function SalesPage() {
     if(!newSaleForm.customer||newSaleForm.lineItems.every((l:any)=>!l.product)) return;
     const lines = JSON.stringify(newSaleForm.lineItems.filter((l:any)=>l.product).map((l:any)=>({product:l.product,price:parseFloat(l.price||0),qty:parseFloat(l.qty||1)})));
     const nextRefillDate = newSaleForm.weeksReorder ? new Date(Date.now()+parseInt(newSaleForm.weeksReorder)*7*86400000).toISOString().split('T')[0] : '';
-    await fetch('/api/sales',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'add',sale:{...newSaleForm,lines,total:saleTotal.toFixed(2),nextRefillDate}})});
-    setShowNewSale(false); setNewSaleForm(EMPTY_SALE); await load();
+    const payload = {...newSaleForm,lines,total:saleTotal.toFixed(2),nextRefillDate};
+    if(editSale) {
+      await fetch('/api/sales',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update',sale:payload,index:editSale.index})});
+    } else {
+      await fetch('/api/sales',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'add',sale:payload})});
+    }
+    setShowNewSale(false); setEditSale(null); setNewSaleForm(freshSale()); await load();
+  }
+  async function deleteSale(index:number) {
+    await fetch('/api/sales',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',index})});
+    setDeleteTarget(null); await load();
+  }
+  function openEdit(s:any) {
+    const lineItems = (() => { try{ const arr=JSON.parse(s.lines||'[]'); return arr.length?arr.map((l:any)=>({product:l.product||'',price:String(l.price||''),qty:String(l.qty||1)})):[{product:'',price:'',qty:'1'}]; }catch{return [{product:'',price:'',qty:'1'}];} })();
+    const weeksReorder = s.nextRefillDate ? String(Math.round((new Date(s.nextRefillDate).getTime()-Date.now())/(7*86400000))) : '';
+    setNewSaleForm({customer:s.customer||'',date:s.date||new Date().toISOString().split('T')[0],referredBy:s.referredBy||'',notes:s.notes||'',weeksReorder,lineItems});
+    setEditSale({sale:s,index:Number(s.id)});
+    setShowNewSale(true);
   }
   useEffect(()=>{ try{ localStorage.setItem('sales_activeSorts', JSON.stringify(activeSorts)); }catch{} },[activeSorts]);
   useEffect(()=>{ try{ localStorage.setItem('sales_datePreset', datePreset); }catch{} },[datePreset]);
@@ -176,7 +194,7 @@ export default function SalesPage() {
           <h1 style={{color:'#fff',fontSize:'22px',fontWeight:800,margin:0}}>Sales</h1>
           <p style={{color:'#4b5563',fontSize:'13px',margin:'4px 0 0'}}>{filtered.length} records · Total: ${totalAmt.toFixed(2)}</p>
         </div>
-        <button onClick={()=>setShowNewSale(true)} style={{background:'#1a4fa8',color:'#fff',border:'none',borderRadius:'8px',padding:'9px 18px',fontWeight:700,fontSize:'13px',cursor:'pointer'}}>+ New Sale</button>
+        <button onClick={()=>{ setNewSaleForm(freshSale()); setEditSale(null); setShowNewSale(true); }} style={{background:'#1a4fa8',color:'#fff',border:'none',borderRadius:'8px',padding:'9px 18px',fontWeight:700,fontSize:'13px',cursor:'pointer'}}>+ New Sale</button>
       </div>
 
       {/* Filters row */}
@@ -274,6 +292,10 @@ export default function SalesPage() {
                       ):<span style={{color:'#4b5563'}}>-</span>}
                     </td>
                     <td style={{...td,color:'#6b7280'}}>{s.referredBy||'-'}</td>
+                    <td style={{...td,whiteSpace:'nowrap'}}>
+                      <button onClick={()=>openEdit(s)} style={{background:'#1a3a7a',color:'#6b9ee8',border:'1px solid #1a4fa8',borderRadius:'6px',padding:'4px 10px',fontSize:'11px',fontWeight:600,cursor:'pointer',marginRight:'6px'}}>Edit</button>
+                      <button onClick={()=>setDeleteTarget(s)} style={{background:'transparent',color:'#f87171',border:'1px solid #3a1a1a',borderRadius:'6px',padding:'4px 10px',fontSize:'11px',fontWeight:600,cursor:'pointer'}}>Del</button>
+                    </td>
                   </tr>
                 );
               })}
@@ -284,7 +306,7 @@ export default function SalesPage() {
       {showNewSale&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
           <div style={{background:'#1a1a1a',border:'1px solid #2a2a2a',borderRadius:'16px',padding:'28px',maxWidth:'560px',width:'100%',maxHeight:'92vh',overflowY:'auto'}}>
-            <h2 style={{color:'#fff',fontWeight:800,fontSize:'18px',margin:'0 0 20px'}}>New Sale</h2>
+            <h2 style={{color:'#fff',fontWeight:800,fontSize:'18px',margin:'0 0 20px'}}>{editSale?'Edit Sale':'New Sale'}</h2>
             {/* Customer dropdown */}
             <div style={{marginBottom:'14px'}}>
               <label style={{display:'block',color:'#9ca3af',fontSize:'12px',fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:'6px'}}>Customer <span style={{color:'#f87171'}}>*</span></label>
@@ -358,8 +380,21 @@ export default function SalesPage() {
               <textarea value={newSaleForm.notes} onChange={e=>setNewSaleForm((p:any)=>({...p,notes:e.target.value}))} rows={2} style={{width:'100%',background:'#111',border:'1px solid #2a2a2a',borderRadius:'8px',padding:'9px 12px',color:'#fff',fontSize:'14px',resize:'vertical'}}/>
             </div>
             <div style={{display:'flex',gap:'10px',justifyContent:'flex-end'}}>
-              <button onClick={()=>{setShowNewSale(false);setNewSaleForm(EMPTY_SALE);}} style={{background:'transparent',border:'1px solid #3a3a3a',color:'#9ca3af',borderRadius:'8px',padding:'8px 18px',cursor:'pointer',fontSize:'14px'}}>Cancel</button>
-              <button onClick={saveNewSale} disabled={!newSaleForm.customer} style={{background:'#1a4fa8',color:'#fff',border:'none',borderRadius:'8px',padding:'8px 20px',cursor:'pointer',fontSize:'14px',fontWeight:700,opacity:newSaleForm.customer?1:0.5}}>Save Sale</button>
+              <button onClick={()=>{setShowNewSale(false);setEditSale(null);setNewSaleForm(freshSale());}} style={{background:'transparent',border:'1px solid #3a3a3a',color:'#9ca3af',borderRadius:'8px',padding:'8px 18px',cursor:'pointer',fontSize:'14px'}}>Cancel</button>
+              <button onClick={saveNewSale} disabled={!newSaleForm.customer} style={{background:'#1a4fa8',color:'#fff',border:'none',borderRadius:'8px',padding:'8px 20px',cursor:'pointer',fontSize:'14px',fontWeight:700,opacity:newSaleForm.customer?1:0.5}}>{editSale?'Update Sale':'Save Sale'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {deleteTarget&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px'}}>
+          <div style={{background:'#1a1a1a',border:'1px solid #3a1a1a',borderRadius:'16px',padding:'28px',maxWidth:'400px',width:'100%'}}>
+            <div style={{fontSize:'28px',marginBottom:'12px'}}>🗑️</div>
+            <h3 style={{color:'#f87171',fontWeight:800,fontSize:'18px',margin:'0 0 8px'}}>Delete Sale?</h3>
+            <p style={{color:'#9ca3af',fontSize:'14px',margin:'0 0 16px'}}>{deleteTarget.customer} — ${parseFloat(deleteTarget.total||0).toFixed(2)} on {deleteTarget.date}</p>
+            <div style={{display:'flex',gap:'10px',justifyContent:'flex-end'}}>
+              <button onClick={()=>setDeleteTarget(null)} style={{background:'transparent',border:'1px solid #3a3a3a',color:'#9ca3af',borderRadius:'8px',padding:'8px 18px',cursor:'pointer',fontSize:'14px'}}>Cancel</button>
+              <button onClick={()=>deleteSale(Number(deleteTarget.id))} style={{background:'#450a0a',border:'1px solid #f87171',color:'#f87171',borderRadius:'8px',padding:'8px 18px',cursor:'pointer',fontSize:'14px',fontWeight:700}}>Yes, Delete</button>
             </div>
           </div>
         </div>
