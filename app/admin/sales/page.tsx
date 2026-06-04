@@ -160,6 +160,7 @@ export default function SalesPage() {
           <h1 style={{color:'#fff',fontSize:'22px',fontWeight:800,margin:0}}>Sales</h1>
           <p style={{color:'#4b5563',fontSize:'13px',margin:'4px 0 0'}}>{filtered.length} records · Total: ${totalAmt.toFixed(2)}</p>
         </div>
+        <button onClick={()=>setShowNewSale(true)} style={{background:'#1a4fa8',color:'#fff',border:'none',borderRadius:'8px',padding:'9px 18px',fontWeight:700,fontSize:'13px',cursor:'pointer'}}>+ New Sale</button>
       </div>
 
       {/* Filters row */}
