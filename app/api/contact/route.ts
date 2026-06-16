@@ -12,17 +12,17 @@ function getSheets() {
 }
 
 export async function POST(req) {
-  const { name, email, phone, goals, questions } = await req.json();
+  const { name, email, phone, goals, questions, source } = await req.json();
   const date = new Date().toLocaleString('en-US', { timeZone: 'America/Denver' });
 
-  // Log to Google Sheets (Contacts tab)
+  // Log to Google Sheets (Contacts tab). Col G = lead source (e.g. campaign), blank for general site inquiries.
   try {
     const sheets = getSheets();
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.GOOGLE_SHEETS_CRM_ID,
-      range: 'Contacts!A:F',
+      range: 'Contacts!A:G',
       valueInputOption: 'RAW',
-      requestBody: { values: [[date, name, email, phone, goals, questions]] },
+      requestBody: { values: [[date, name, email, phone, goals, questions, source || '']] },
     });
   } catch(e) { console.error('Sheets error:', e); }
 
@@ -32,9 +32,10 @@ export async function POST(req) {
     await resend.emails.send({
       from: 'HealthEasy <onboarding@resend.dev>',
       to: ['besmartaico@gmail.com'],
-      subject: `New Inquiry from ${name}`,
+      subject: `New Inquiry from ${name}${source ? ` [${source}]` : ''}`,
       html: `
         <h2>New Website Inquiry</h2>
+        ${source ? `<p><strong>Source:</strong> ${source}</p>` : ''}
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>Email:</strong> ${email}</p>
         <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>

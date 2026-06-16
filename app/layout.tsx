@@ -4,7 +4,10 @@ import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://healtheasy.co'
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: 'HealthEasy.co',
   description: 'Premium peptide therapy guidance powered by AI',
   icons: {
